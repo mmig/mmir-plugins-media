@@ -39,6 +39,19 @@ newMediaPlugin = {
 		var _defaultImplFile = 'webasrGooglev1Impl.js';
 		
 		/**
+		 * Map for codec names to implementation files
+		 * 
+		 * Note, that codec names are in lower case.
+		 * 
+		 * @memberOf Html5AudioInput#
+		 */
+		var _workerImpl = {
+			'amr':  'amrEncoder.js',
+			'flac': 'flacEncoder.js',
+			'wav':  'recorderWorkerExt.js'
+		};
+		
+		/**
 		 * Map for the worker-filenames of the various audio-input implementations:
 		 * 
 		 * If there is no (application-) specific configuration present, then the entry
@@ -48,11 +61,11 @@ newMediaPlugin = {
 		 * @memberOf Html5AudioInput#
 		 */
 		var _defaultWorkerImpl = {
-			'webasratntimpl.js':     'amrEncoder.js',
-			'webasrgooglev1impl.js': 'recorderWorkerExt.js',
-			'webasrgoogleimpl.js':   'flacEncoder.js',
-			'webasrnuanceimpl.js':   'amrEncoder.js',
-			'_default': 'recorderWorkerExt.js'
+			'webasratntimpl.js':     _workerImpl.amr,
+			'webasrgooglev1impl.js': _workerImpl.wav,
+			'webasrgoogleimpl.js':   _workerImpl.flac,
+			'webasrnuanceimpl.js':   _workerImpl.wav,
+			'_default':              _workerImpl.wav
 		};
 		
 		/** 
@@ -258,7 +271,17 @@ newMediaPlugin = {
     			if(!recorder){
     				var workerImpl = configurationManager.getString([_pluginName, 'encoder'], true);
     				if(!workerImpl){
+    					//try to find worker implementation by (known) plugin names (fallback to default, if not known)
     					workerImpl = _defaultWorkerImpl[_implFileName] || _defaultWorkerImpl._default; 
+    				} else {
+    					//resolve (known) codec names to files, if necessary
+    					if(/amr/i.test(workerImpl)){
+    						workerImpl = _workerImpl.amr;
+    					} else if(/flac/i.test(workerImpl)){
+    						workerImpl = _workerImpl.flac;
+    					} else if(/wav/i.test(workerImpl)){
+    						workerImpl = _workerImpl.wav;
+    					}
     				}
     				
     				var recorderWorkerPath = constants.getWorkerPath()+workerImpl;
