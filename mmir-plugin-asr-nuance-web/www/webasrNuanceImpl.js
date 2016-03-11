@@ -331,7 +331,7 @@ newWebAudioAsrImpl = (function NuanceWebAudioInputImpl(){
 			return false;
 		},
 		onsendpart: doStopPropagation,
-		onsilencedetected: doStopPropagation,
+		onsilencedetected: onSilenceDetected,
 		onclear: onClear,
 		getPluginName: function(){
 			return _pluginName;
