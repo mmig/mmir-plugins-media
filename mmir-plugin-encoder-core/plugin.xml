@@ -2,7 +2,7 @@
 <plugin 
     xmlns="http://cordova.apache.org/ns/plugins/1.0"
     id="mmir-plugin-encoder-core"
-    version="0.1.0">
+    version="0.2.0">
 
     <name>MMIR framwork core audio encoder</name>
     
@@ -40,5 +40,10 @@
     <asset
         src="www/recorderExt.js"
         target="mmirf/env/media/recorderExt.js" />
+    
+    <!-- basic WebWorker recorder (for recording PCM/WAV): -->
+    <asset
+        src="www/recorderWorkerExt.js"
+        target="mmirf/env/media/recorderWorkerExt.js" />
     
 </plugin>
