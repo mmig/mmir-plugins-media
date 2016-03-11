@@ -570,7 +570,7 @@ newMediaPlugin = {
         				//TODO find better mechanism (or name?): this may not be the last blob (there may be silent audio)
         				//							             ... but it will be the last (successfully recognized) result!
         				lastBlob = true;
-        				audioProcessor.setLastResult && setLastResult.setLastResult();
+        				audioProcessor.setLastResult && audioProcessor.setLastResult();
     				});
     				
     				lastBlob = false;
