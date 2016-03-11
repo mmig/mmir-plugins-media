@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin 
+    xmlns="http://cordova.apache.org/ns/plugins/1.0"
+    id="mmir-plugin-encoder-flac"
+    version="0.1.0">
+
+    <name>MMIR framwork FLAC encoder</name>
+    
+    <keywords>cordova,audio,codec,flac</keywords>
+    
+    <description>
+      Cordova plugin for the MMIR framework that adds a JavaScript based FLAC encoder; 
+      uses libflac.js (BSD and partially MIT license), see https://github.com/mmig/libflac.js
+    </description>
+
+    <author>russa, DFKI</author>
+
+    <engines>
+        <engine name="cordova" version=">=5.0" />
+    </engines>
+
+	<dependency id="mmir-plugin-encoder-core" url="." subdir="mmir-plugin-encoder-core" />
+  
+    <!-- module implementation for integration into MMIR framework  -->
+    <asset
+        src="www/flacEncoder.js"
+        target="mmirf/workers/flacEncoder.js" />
+        
+    <asset
+        src="www/libflac.min.js"
+        target="mmirf/workers/libflac.min.js" />
+    
+    <!-- 
+         DEV version (i.e. not minified) of FLAC encoder
+         
+         NOTE need to change importScripts() statement in flacEncoder.js
+              in order to use this!
+     -->
+    <!--asset
+        src="www/libflac.js"
+        target="mmirf/workers/libflac.js" /-->
+    
+</plugin>

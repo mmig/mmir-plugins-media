@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin 
+    xmlns="http://cordova.apache.org/ns/plugins/1.0"
+    id="mmir-plugin-asr-google-web"
+    version="0.1.0">
+
+    <name>Google Web Speech Recognition v2</name>
+    
+    <keywords>cordova,speech,asr,recognition</keywords>
+    
+    <description>
+      Cordova plugin for the MMIR framework that allows Automatic Speech Recognition (ASR)
+      via Google web speech recognition services (v2)
+    </description>
+
+    <author>russa, DFKI</author>
+
+    <engines>
+        <engine name="cordova" version=">=5.0" />
+    </engines>
+
+	<dependency id="mmir-plugin-encoder-flac" url="." subdir="mmir-plugin-encoder-flac" />
+  
+    <!-- ASR plugin implementation for integration into MMIR framework  -->
+    <asset
+        src="www/webasrGoogleImpl.js"
+        target="mmirf/env/media/webasrGoogleImpl.js" />
+    
+</plugin>

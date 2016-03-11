@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin 
+    xmlns="http://cordova.apache.org/ns/plugins/1.0"
+    id="mmir-plugin-tts-nuance-web"
+    version="0.1.0">
+
+    <name>Nuance Web Speech Synthesis</name>
+    
+    <keywords>cordova,speech,tts,synthesis</keywords>
+    
+    <description>
+      Cordova plugin for the MMIR framework that adds Text To Speech (TTS) synthesis via Nuance web services
+    </description>
+
+    <author>russa, DFKI</author>
+
+    <engines>
+        <engine name="cordova" version=">=5.0" />
+    </engines>
+
+	<!-- TODO add when adding support for AMR codec to Nuance TTS over HTTPS: -->
+	<!--dependency id="mmir-plugin-encoder-amr" url="." subdir="mmir-plugin-encoder-amr" /-->
+  
+    <!-- ASR plugin implementation for integration into MMIR framework  -->
+    <asset
+        src="www/webttsNuanceImpl.js"
+        target="mmirf/env/media/webttsNuanceImpl.js" />
+    
+</plugin>

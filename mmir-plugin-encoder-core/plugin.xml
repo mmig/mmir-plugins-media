@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin 
+    xmlns="http://cordova.apache.org/ns/plugins/1.0"
+    id="mmir-plugin-encoder-core"
+    version="0.1.0">
+
+    <name>MMIR framwork core audio encoder</name>
+    
+    <keywords>cordova,audio,codec,webworker</keywords>
+    
+    <description>
+      Cordova plugin for the MMIR framework that provides core functionality for running (JavaScript)
+	  audio encoders via WebWorkers. 
+    </description>
+
+    <author>russa, DFKI</author>
+
+    <engines>
+        <engine name="cordova" version=">=5.0" />
+    </engines>
+  
+    <!-- WebWorker encoder core files 
+        (NOTE: requires some additional files/modules that are included in the MMIR framework)
+     -->
+    <asset
+        src="www/encoder.js"
+        target="mmirf/workers/encoder.js" />
+        
+    <!-- basic silence/end-of-speech detection: -->
+    <asset
+        src="www/silenceDetector.js"
+        target="mmirf/workers/silenceDetector.js" />
+    
+    <!-- wrapper module for integrating encoder into the MMIR framework: -->
+    <asset
+        src="www/webAudioInput.js"
+        target="mmirf/env/media/webAudioInput.js" />
+        
+    <!-- (microphone) recorder / controller for WebWorker encoders: -->
+    <asset
+        src="www/recorderExt.js"
+        target="mmirf/env/media/recorderExt.js" />
+    
+</plugin>

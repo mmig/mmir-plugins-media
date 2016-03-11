@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin 
+    xmlns="http://cordova.apache.org/ns/plugins/1.0"
+    id="mmir-plugin-asr-nuance-web"
+    version="0.1.0">
+
+    <name>Nuance Web Speech Recognition</name>
+    
+    <keywords>cordova,speech,asr,recognition</keywords>
+    
+    <description>
+      Cordova plugin for the MMIR framework that allows Automatic Speech Recognition (ASR) via Nuance web services
+    </description>
+
+    <author>russa, DFKI</author>
+
+    <engines>
+        <engine name="cordova" version=">=5.0" />
+    </engines>
+
+	<dependency id="mmir-plugin-encoder-amr" url="." subdir="mmir-plugin-encoder-amr" />
+  
+    <!-- ASR plugin implementation for integration into MMIR framework  -->
+    <asset
+        src="www/webasrNuanceImpl.js"
+        target="mmirf/env/media/webasrNuanceImpl.js" />
+    
+</plugin>
