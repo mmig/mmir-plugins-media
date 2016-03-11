@@ -536,7 +536,7 @@ newMediaPlugin = {
         				audioProcessor.setCallbacks(textProcessor, currentFailureCallback, stopUserMedia);
         				
         				lastBlob = true;
-        				audioProcessor.setLastResult && setLastResult.setLastResult();
+        				audioProcessor.setLastResult && audioProcessor.setLastResult();
         				
         				silenceDetection && silenceDetection.postMessage({cmd: 'stop'});
         				
