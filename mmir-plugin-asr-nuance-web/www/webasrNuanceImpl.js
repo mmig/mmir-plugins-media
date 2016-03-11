@@ -57,6 +57,19 @@ newWebAudioAsrImpl = (function NuanceWebAudioInputImpl(){
 	 */
 	var configurationManager = require('configurationManager');
 	
+	/** @memberOf NuanceWebAudioInputImpl# */
+	var result_types = {
+			"FINAL": 				"FINAL",
+			"INTERIM": 				"INTERIM",
+			"INTERMEDIATE":			"INTERMEDIATE",
+			"RECOGNITION_ERROR": 	"RECOGNITION_ERROR",
+			"RECORDING_BEGIN": 		"RECORDING_BEGIN",
+			"RECORDING_DONE": 		"RECORDING_DONE"
+	};
+
+	/** @memberOf NuanceWebAudioInputImpl# */
+	var lastBlob = false;
+	
 	/**
 	 * HELPER retrieve language setting and apply impl. specific corrections/adjustments
 	 * (i.e. deal with Nuance specific quirks for language/country codes)
@@ -176,6 +189,9 @@ newWebAudioAsrImpl = (function NuanceWebAudioInputImpl(){
 //				console.log("ResonseText in input");
 
 				var respText = (this.responseText).split("\n");
+				if(!respText){
+					respText = '';
+				}
 
 //				console.log("ResonseText:"+this.responseText);
 //				console.log("ResonseArray:"+respText);
@@ -186,8 +202,19 @@ newWebAudioAsrImpl = (function NuanceWebAudioInputImpl(){
 				//[asr_result, asr_score, asr_type, asr_alternatives, asr_unstable]
 				//[ text, number, STRING (enum/CONST), Array<(text, number)>, text ]
 				//                ["FINAL" | "INTERIM"...]
-				if(successCallback && respText){
-					successCallback(respText[0],1);
+				if(successCallback){
+					
+					var altRes;
+					if(respText.length > 1){
+						altRes = [];
+						for(var i=1,size=respText.length; i < size; ++i){
+							altRes.push({text: respText[i]});
+						}
+					}
+					
+					type = lastBlob? result_types.FINAL : result_types.INTERMEDIATE;
+					
+					successCallback(respText[0],1,type,altRes);
 				}
 
 			} else {
@@ -294,20 +321,35 @@ newWebAudioAsrImpl = (function NuanceWebAudioInputImpl(){
 //		initRec: function(){},
 		sendData: doSend,
 		oninit: doStopPropagation,
-		onstarted: doStopPropagation,
+		onstarted: function(data, successCallback, errorCallback){
+			successCallback && successCallback('',-1,result_types.RECORDING_BEGIN)
+			return false;
+		},
 		onaudiostarted: doStopPropagation,
-		onstopped: doStopPropagation,
+		onstopped: function(data, successCallback, errorCallback){
+			successCallback && successCallback('',-1,result_types.RECORDING_DONE)
+			return false;
+		},
 		onsendpart: doStopPropagation,
-		onsilencedetected: onSilenceDetected,
+		onsilencedetected: doStopPropagation,
 		onclear: onClear,
 		getPluginName: function(){
 			return _pluginName;
 		},
-		setCallbacks: function(successCallback, failureCallback){}//NOOP these need to be set in doSend() only
+		setCallbacks: function(successCallback, failureCallback){},//NOOP these need to be set in doSend() only
 //
 //			textProcessor = successCallback;
 //			currentFailureCallback = failureCallback;
-//		}
+//		},
+		setLastResult: function(){
+			lastBlob = true;
+		},
+		resetLastResult: function(){
+			lastBlob = false;
+		},
+		isLastResult: function(){
+			return lastBlob;
+		}
 	};
 		
 })();

@@ -57,6 +57,18 @@ newWebAudioAsrImpl = (function GoogleWebAudioInputImpl(){
 	 */
 	var configurationManager = require('configurationManager');
 	
+	/** @memberOf GoogleWebAudioInputImpl# */
+	var result_types = {
+			"FINAL": 				"FINAL",
+			"INTERIM": 				"INTERIM",
+			"INTERMEDIATE":			"INTERMEDIATE",
+			"RECOGNITION_ERROR": 	"RECOGNITION_ERROR",
+			"RECORDING_BEGIN": 		"RECORDING_BEGIN",
+			"RECORDING_DONE": 		"RECORDING_DONE"
+	};
+
+	/** @memberOf GoogleWebAudioInputImpl# */
+	var lastBlob = false;
 	/**
 	 * HELPER retrieve language setting and apply impl. specific corrections/adjustments
 	 * (i.e. deal with Nuance specific quirks for language/country codes)
@@ -124,8 +136,8 @@ newWebAudioAsrImpl = (function GoogleWebAudioInputImpl(){
 				//QUICK-FIX: several results may get sent within one response, separated by a NEWLINE
 				var list = respText.split(/\r?\n/gm);
 				
-				var result, score, alt, data, text, num;
-				var type = 'FINAL';//TODO
+				var result = '', score, alt, data, text, num;
+				var type = lastBlob? result_types.FINAL : result_types.INTERMEDIATE;
 				for(var i=0,size=list.length; i < size; ++i){
 					
 					if(!list[i]){
@@ -201,7 +213,7 @@ newWebAudioAsrImpl = (function GoogleWebAudioInputImpl(){
 				//[asr_result, asr_score, asr_type, asr_alternatives, asr_unstable]
 				//[ text, number, STRING (enum/CONST), Array<(text, number)>, text ]
 				//                ["FINAL" | "INTERIM"...]
-				if(successCallback && respText){
+				if(successCallback){
 					successCallback(result, score, type, alt);
 				}
 
@@ -307,20 +319,35 @@ newWebAudioAsrImpl = (function GoogleWebAudioInputImpl(){
 //		initRec: function(){},
 		sendData: doSend,
 		oninit: doStopPropagation,
-		onstarted: doStopPropagation,
+		onstarted: function(data, successCallback, errorCallback){
+			successCallback && successCallback('',-1,result_types.RECORDING_BEGIN)
+			return false;
+		},
 		onaudiostarted: doStopPropagation,
-		onstopped: doStopPropagation,
+		onstopped: function(data, successCallback, errorCallback){
+			successCallback && successCallback('',-1,result_types.RECORDING_DONE)
+			return false;
+		},
 		onsendpart: doStopPropagation,
 		onsilencedetected: onSilenceDetected,
 		onclear: onClear,
 		getPluginName: function(){
 			return _pluginName;
 		},
-		setCallbacks: function(successCallback, failureCallback){}//NOOP these need to be set in doSend() only
+		setCallbacks: function(successCallback, failureCallback){},//NOOP these need to be set in doSend() only
 //
 //			textProcessor = successCallback;
 //			currentFailureCallback = failureCallback;
-//		}
+//		},
+		setLastResult: function(){
+			lastBlob = true;
+		},
+		resetLastResult: function(){
+			lastBlob = false;
+		},
+		isLastResult: function(){
+			return lastBlob;
+		}
 	};
 		
 })();

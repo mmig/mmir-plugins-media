@@ -57,6 +57,19 @@ newWebAudioAsrImpl = (function ATnTWebAudioInputImpl(){
 	 */
 	var mediaManager = require('mediaManager');
 	
+	/** @memberOf ATnTWebAudioInputImpl# */
+	var result_types = {
+			"FINAL": 				"FINAL",
+			"INTERIM": 				"INTERIM",
+			"INTERMEDIATE":			"INTERMEDIATE",
+			"RECOGNITION_ERROR": 	"RECOGNITION_ERROR",
+			"RECORDING_BEGIN": 		"RECORDING_BEGIN",
+			"RECORDING_DONE": 		"RECORDING_DONE"
+	};
+
+	/** @memberOf ATnTWebAudioInputImpl# */
+	var lastBlob = false;
+	
 	/**
 	 * @memberOf ATnTWebAudioInputImpl#
 	 */
@@ -203,17 +216,30 @@ newWebAudioAsrImpl = (function ATnTWebAudioInputImpl(){
 //				console.log("AJAXSubmit - Success!");
 //				console.log("ResonseText in input");
 
-				var respText = false;
+				var respText = '', altRes;
 
 				var jsonResp = JSON.parse(this.responseText);
 				if(jsonResp && jsonResp.Recognition && !! jsonResp.Recognition.NBest){
-					respText = jsonResp.Recognition.NBest[0].ResultText;
+					
+					var results = jsonResp.Recognition.NBest;
+					respText = results[0].ResultText;
+					
+					if(results.length > 1){
+						altRes = [];
+						for(var i=1,size=results.length; i < size; ++i){
+							altRes.push({text: results[i]});
+						}
+					}
+					
 				} else {
 					console.error('no asr results!');
 				}
 
-				if(successCallback && respText){
-					successCallback(respText,1);
+				if(successCallback){
+					
+					type = lastBlob? result_types.FINAL : result_types.INTERMEDIATE;
+					
+					successCallback(respText,1,type,altRes);
 				}
 
 			} else {
@@ -355,20 +381,35 @@ newWebAudioAsrImpl = (function ATnTWebAudioInputImpl(){
 //		initRec: function(){},
 		sendData: doSend,
 		oninit: doStopPropagation,
-		onstarted: doStopPropagation,
+		onstarted: function(data, successCallback, errorCallback){
+			successCallback && successCallback('',-1,result_types.RECORDING_BEGIN)
+			return false;
+		},
 		onaudiostarted: doStopPropagation,
-		onstopped: doStopPropagation,
+		onstopped: function(data, successCallback, errorCallback){
+			successCallback && successCallback('',-1,result_types.RECORDING_DONE)
+			return false;
+		},
 		onsendpart: doStopPropagation,
 		onsilencedetected: onSilenceDetected,
 		onclear: onClear,
 		getPluginName: function(){
 			return _pluginName;
 		},
-		setCallbacks: function(successCallback, failureCallback){}//NOOP these need to be set in doSend() only
+		setCallbacks: function(successCallback, failureCallback){},//NOOP these need to be set in doSend() only
 //
 //			textProcessor = successCallback;
 //			currentFailureCallback = failureCallback;
-//		}
+//		},
+		setLastResult: function(){
+			lastBlob = true;
+		},
+		resetLastResult: function(){
+			lastBlob = false;
+		},
+		isLastResult: function(){
+			return lastBlob;
+		}
 	};
 		
 })();

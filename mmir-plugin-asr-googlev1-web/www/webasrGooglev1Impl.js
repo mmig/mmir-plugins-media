@@ -191,10 +191,25 @@ newWebAudioAsrImpl = (function Googlev1WebAudioInputImpl() {
 			//FIXME debug output:
 			console.debug('HTML5-Speech-Recoginition_received ASR: '+jsonText );
 			if(jsonText && jsonText.length > 0){//FIXME
+				
 				var jsonResponse = JSON.parse(jsonText);
-				if (jsonResponse.hypotheses.length>0){
+				var size = jsonResponse.hypotheses.length;
+				if (size > 0){
+					
 					if(textProcessor){
-						textProcessor(jsonResponse.hypotheses[0].utterance, id);
+						
+						var type = lastBlob? 'FINAL' : 'INTERMEDIATE';
+						
+						var alt;
+						if (size > 1){
+							alt = [];
+							for(var i=1; i < size; ++i){
+								alt.push({text: jsonResponse.hypotheses[i].utterance, score: jsonResponse.hypotheses[i].confidence});
+							}
+						}
+						var text = jsonResponse.hypotheses[0].utterance;
+						var score = jsonResponse.hypotheses[0].confidence || 1;
+						textProcessor(text, score, type, alt);
 					}
 
 					//aggregate / gather text-parts into the recordAsrResultCache:
@@ -204,15 +219,15 @@ newWebAudioAsrImpl = (function Googlev1WebAudioInputImpl() {
 //      		//		-> still need to notify the the textProcessor
 //      		//		FIXME really, this is only necessary when stopping the ASR/recording (but would need to recoginze this case...)
 //      		else if(textProcessor){
-//  				textProcessor('', id);
+//  				textProcessor('', 1, 'FINAL');
 //      		}    				 
 				else if(lastBlob || isUseIntermediateResults){
-					textProcessor('');
+					textProcessor('', 1, 'FINAL');
 				}
 				lastBlob = false;
 			}
 			else if(lastBlob || isUseIntermediateResults){
-				textProcessor('');
+				textProcessor('', 1, 'FINAL');
 			}
 			lastBlob = false;
 		};
@@ -343,9 +358,15 @@ newWebAudioAsrImpl = (function Googlev1WebAudioInputImpl() {
 		initRec: clearRec,
 		sendData: doSend,
 		oninit: doStopPropagation,
-		onstarted: doStopPropagation,
-		onaudiostarted: onSilence,
-		onstopped: doStopPropagation,
+		onstarted: function(data, successCallback, errorCallback){
+			successCallback && successCallback('',-1,'RECORDING_BEGIN')
+			return false;
+		},
+		onaudiostarted: doStopPropagation,
+		onstopped: function(data, successCallback, errorCallback){
+			successCallback && successCallback('',-1,'RECORDING_DONE')
+			return false;
+		},
 		onsendpart: onSendPart,
 		onsilencedetected: onSilence,
 		onclear: onClear,

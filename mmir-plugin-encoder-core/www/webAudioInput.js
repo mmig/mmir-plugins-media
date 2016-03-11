@@ -303,13 +303,13 @@ newMediaPlugin = {
     				if (e.data === 'Send partial!'){
     					
     					if(audioProcessor.onsendpart){
-    						isContinuePropagation = audioProcessor.onsendpart(e);
+    						isContinuePropagation = audioProcessor.onsendpart(e, textProcessor, currentFailureCallback);
     					}
     				}
     				else if (e.data === 'Silence detected!'){
     					
     					if(audioProcessor.onsilencedetected){
-    						isContinuePropagation = audioProcessor.onsilencedetected(e);
+    						isContinuePropagation = audioProcessor.onsilencedetected(e, textProcessor, currentFailureCallback);
     					}
     					
     					if (endOfSpeechDetection){
@@ -320,34 +320,34 @@ newMediaPlugin = {
     				else if (e.data === 'clear'){
     					
     					if(audioProcessor.onclear){
-    						isContinuePropagation = audioProcessor.onclear(e);
+    						isContinuePropagation = audioProcessor.onclear(e, textProcessor, currentFailureCallback);
     					}
     				}
     				else if(e.data === 'Silence Detection initialized'){
     					
     					if(audioProcessor.oninit){
-    						isContinuePropagation = audioProcessor.oninit(e);
+    						isContinuePropagation = audioProcessor.oninit(e, textProcessor, currentFailureCallback);
     					}
     					
     				}
     				else if(e.data === 'Silence Detection started'){
     					
     					if(audioProcessor.onstarted){
-    						isContinuePropagation = audioProcessor.onstarted(e);
+    						isContinuePropagation = audioProcessor.onstarted(e, textProcessor, currentFailureCallback);
     					}
     					
     				}
     				else if(e.data === 'Silence Detection Audio started'){
     					
     					if(audioProcessor.onaudiostarted){
-    						isContinuePropagation = audioProcessor.onaudiostarted(e);
+    						isContinuePropagation = audioProcessor.onaudiostarted(e, textProcessor, currentFailureCallback);
     					}
     					
     				}
     				else if(e.data === 'Silence Detection stopped'){
     					
     					if(audioProcessor.onstopped){
-    						isContinuePropagation = audioProcessor.onstopped(e);
+    						isContinuePropagation = audioProcessor.onstopped(e, textProcessor, currentFailureCallback);
     					}
     					
     				} else {
@@ -530,13 +530,13 @@ newMediaPlugin = {
         						if (audioProcessor.isLastResult()) {
         							successCallback(totalText+ ' ' + e);
         						}
-        						audioProcessor.resetLastResult();
+        						audioProcessor.resetLastResult && audioProcessor.resetLastResult();
         					};
         				}
         				audioProcessor.setCallbacks(textProcessor, currentFailureCallback, stopUserMedia);
         				
         				lastBlob = true;
-        				audioProcessor.setLastResult && setLastResult.resetLastResult();
+        				audioProcessor.setLastResult && setLastResult.setLastResult();
         				
         				silenceDetection && silenceDetection.postMessage({cmd: 'stop'});
         				
@@ -566,6 +566,11 @@ newMediaPlugin = {
     					recorder && recorder.clear();
         				recorder && recorder.record();
         				silenceDetection && silenceDetection.postMessage({cmd: 'start'});
+        				
+        				//TODO find better mechanism (or name?): this may not be the last blob (there may be silent audio)
+        				//							             ... but it will be the last (successfully recognized) result!
+        				lastBlob = true;
+        				audioProcessor.setLastResult && setLastResult.setLastResult();
     				});
     				
     				lastBlob = false;
