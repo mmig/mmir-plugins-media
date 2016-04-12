@@ -45,7 +45,7 @@ var recLength = 0,
   sampleRate;
 
 this.onmessage = function(e){
-  switch(e.data.command){
+  switch(e.data.cmd){
     case 'init':
       init(e.data.config);
       break;
@@ -131,7 +131,7 @@ function clear(){
   recBuffersR = [];
 }
 
-function mergeBuffers(recBuffers, recLength){
+function mergeBuffersFloat(recBuffers, recLength){
   var result = new Float32Array(recLength);
   var offset = 0;
   for (var i = 0; i < recBuffers.length; i++){
