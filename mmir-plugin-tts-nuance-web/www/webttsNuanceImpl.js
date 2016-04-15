@@ -27,6 +27,7 @@
 /**
  * Media Module: Implementation for Text-To-Speech via Nuance TTS over HTTPS/POST
  * 
+ * @requries jQuery.ajax >= 2.2.3
  * @requires Cross-Domain access
  * @requires CSP for accessing the Nuance TTS server, e.g. "connect-src https://tts.nuancemobility.net" or "default-src https://tts.nuancemobility.net"
  * @requires CSP allowing blob: protocal as media-source, e.g. "media-src blob:" or "default-src blob:"
@@ -54,6 +55,11 @@ newWebAudioTtsImpl = (function NuanceWebAudioTTSImpl(){
 		 * @memberOf NuanceWebAudioTTSImpl#
 		 */
 		var _langManager = require('languageManager');
+		/** 
+		 * @type jQuery
+		 * @memberOf NuanceWebAudioTTSImpl#
+		 */
+		var jquery = require('jquery');
 		
 		/**
 		 * separator char for language- / country-code (specific to Nuance language config / codes)
@@ -248,11 +254,7 @@ newWebAudioTtsImpl = (function NuanceWebAudioTTSImpl(){
 				format += samplerate;
 			}
 			
-			var oReq = new XMLHttpRequest();
-			
 			//extend Audio's release()-function to cancel POST req. if one is set/active
-			/** @memberOf mmir.env.media.NuanceWebAudio */
-			audioObj.req = oReq;
 			/** @memberOf mmir.env.media.NuanceWebAudio */
 			audioObj.__release = audioObj.release;
 			/** @memberOf mmir.env.media.NuanceWebAudio */
@@ -260,7 +262,7 @@ newWebAudioTtsImpl = (function NuanceWebAudioTTSImpl(){
 				//cancel POST request, if one is active:
 				if(this.req){
 					console.log('aborting POST request: '+this.req);
-					this.req.abort();
+					this.req.abort();//<- this.req is set below when ajax is send
 					this.req = null;
 				}
 				return this.__release();
@@ -268,49 +270,61 @@ newWebAudioTtsImpl = (function NuanceWebAudioTTSImpl(){
 			/** @memberOf mmir.env.media.NuanceWebAudio */
 			audioObj.release = audioObj._release;
 			
-			
-			oReq.open('POST', reqUrl, true);
-			oReq.setRequestHeader('Content-Type', 'text/plain; charset=utf-8');
-			oReq.setRequestHeader('Accept', format);
-			oReq.responseType = 'arraybuffer';
-			
-			oReq.onload = function(oEvent) {
+			var ajaxSuccess = function(data, textStatus, jqXHR) {
+					
+				//console.log(oReq.response);
 				
-				if (oReq.status == 200) {
-					
-					//console.log(oReq.response);
-					
-					audioObj.req = null;
-					
-					//do not preceed, if audio was already canceled
-					if(!audioObj.isEnabled()){
-						return;///////////////// EARLY EXIT //////////////
-					}
-					
-					var wav = addWaveHeadder(oReq.response, samplerate);
-					
-					var wavBlob = new Blob( [new DataView(wav)] );
-					
-//					console.log("Blob: "+wavBlob.size);
-					//console.log(waveblob);
-					
-					_mediaManager.getWAVAsAudio(wavBlob,
-							null,//<- do not need on-created callback, since we already loaded the audio-data at this point
-							onend, onerror, oninit,
-							audioObj
-					);
-
-					
-				} else {
-					
-					_mediaManager._log.error('Error code ' + oReq.status + ' for POST request: '+oReq.statusText);
-
-					//failurecallback:
-					onerror();
-					
+				audioObj.req = null;
+				
+				//do not preceed, if audio was already canceled
+				if(!audioObj.isEnabled()){
+					return;///////////////// EARLY EXIT //////////////
 				}
+				
+				//NOTE must use data arguement, since jqXHR does not contain appropriate response field for binary/non-text data
+				var wav = addWaveHeadder(data, samplerate);
+				
+				var wavBlob = new Blob( [new DataView(wav)] );
+				
+//				console.log("Blob: "+wavBlob.size);
+				//console.log(waveblob);
+				
+				_mediaManager.getWAVAsAudio(wavBlob,
+						null,//<- do not need on-created callback, since we already loaded the audio-data at this point
+						onend, onerror, oninit,
+						audioObj
+				);
+
+					
 			};
-			oReq.send(currSentence);
+			
+			var ajaxFail = function(jqXHR, textStatus, errorThrown) {
+					
+				_mediaManager._log.error('Error code ' + jqXHR.status + ' for POST request: ' + textStatus + ', '+errorThrown);
+
+				//failurecallback:
+				onerror && onerror(textStatus + errorThrown, errorThrown);
+			};
+			
+			var options = {
+				url: reqUrl,
+				type: 'POST',
+				dataType: 'binary',					//avoid any conversion attempts by jQuery (if responseType is set, jQuery will set the response as binary field)
+				xhrFields: {
+					responseType: 'arraybuffer'		//set response type to binary/arraybuffer (i.e. the audio/*)
+				},
+				headers: {
+					'Content-Type': 'text/plain; charset=utf-8',
+					'Accept': format
+				},
+				processData: false,					//prevent jQuery from trying to process the (raw String) data
+				data: currSentence,
+				
+				success: ajaxSuccess,
+				error: ajaxFail
+			};
+			
+			audioObj.req = jquery.ajax(options);
 		};
 		
 		/**  @memberOf NuanceWebAudioTTSImpl# */
