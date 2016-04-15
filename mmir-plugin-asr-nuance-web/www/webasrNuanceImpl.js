@@ -27,6 +27,7 @@
 /**
  * Media Module: Implementation for Speech Recognition via Nuance ASR over HTTPS/POST
  * 
+ * @requries jQuery.ajax
  * @requires AMR encoder (workers/amrEncoder.js)
  * @requires Cross-Domain access
  * @requires CSP for accessing the Nuance ASR server, e.g. "connect-src https://dictation.nuancemobility.net" or "default-src https://dictation.nuancemobility.net"
