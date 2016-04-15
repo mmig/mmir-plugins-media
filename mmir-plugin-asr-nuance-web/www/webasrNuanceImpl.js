@@ -57,7 +57,7 @@ newWebAudioAsrImpl = (function NuanceWebAudioInputImpl(){
 	 */
 	var configurationManager = require('configurationManager');
 	/** 
-	 * @type mmir.ConfigurationManager
+	 * @type jQuery
 	 * @memberOf NuanceWebAudioInputImpl#
 	 */
 	var jquery = require('jquery');
