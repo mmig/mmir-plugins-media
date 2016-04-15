@@ -56,6 +56,11 @@ newWebAudioAsrImpl = (function NuanceWebAudioInputImpl(){
 	 * @memberOf NuanceWebAudioInputImpl#
 	 */
 	var configurationManager = require('configurationManager');
+	/** 
+	 * @type mmir.ConfigurationManager
+	 * @memberOf NuanceWebAudioInputImpl#
+	 */
+	var jquery = require('jquery');
 	
 	/** @memberOf NuanceWebAudioInputImpl# */
 	var result_types = {
@@ -91,7 +96,7 @@ newWebAudioAsrImpl = (function NuanceWebAudioInputImpl(){
 	 * 					status: NUMBER
 	 * @memberOf NuanceWebAudioInputImpl#
 	 */
-	var asrErrorWrapper = function(ajax,response,blobsize){
+	var asrErrorWrapper = function(ajax,blobsize){
 
 		var status = (ajax.status).toString(), msg;
 
@@ -168,8 +173,6 @@ newWebAudioAsrImpl = (function NuanceWebAudioInputImpl(){
 		break;
 		}
 
-		console.error('Error response from server (status '+status+'): '+msg);
-
 		return {
 			status: status,
 			message: msg
@@ -178,65 +181,57 @@ newWebAudioAsrImpl = (function NuanceWebAudioInputImpl(){
 
 	/** @memberOf NuanceWebAudioInputImpl# */
 	var doSend = function(msg, successCallback, errorCallback){
-
-//		successCallback = successCallback || textProcessor;
-//		errorCallback = errorCallback || currentFailureCallback;
 		
-		var ajaxSuccess = function() {
+		var ajaxSuccess = function(data, textStatus, jqXHR) {
 
-			if (oAjaxReq.status == 200) {
-//				console.log("AJAXSubmit - Success!");
-//				console.log("ResonseText in input");
+//			console.log("AJAXSubmit - Success!");
+//			console.log("ResonseText in input");
 
-				var respText = (this.responseText).split("\n");
-				if(!respText){
-					respText = '';
-				}
+			var respText = (jqXHR.responseText).split("\n");
+			if(!respText){
+				respText = '';
+			}
 
-//				console.log("ResonseText:"+this.responseText);
-//				console.log("ResonseArray:"+respText);
+//			console.log("ResonseText:"+this.responseText);
+//			console.log("ResonseArray:"+respText);
 
-				//jsonResp = JSON.parse(this.responseText);
+			//jsonResp = JSON.parse(this.responseText);
 
 
-				//[asr_result, asr_score, asr_type, asr_alternatives, asr_unstable]
-				//[ text, number, STRING (enum/CONST), Array<(text, number)>, text ]
-				//                ["FINAL" | "INTERIM"...]
-				if(successCallback){
-					
-					var altRes;
-					if(respText.length > 1){
-						altRes = [];
-						for(var i=1,size=respText.length; i < size; ++i){
+			//[asr_result, asr_score, asr_type, asr_alternatives, asr_unstable]
+			//[ text, number, STRING (enum/CONST), Array<(text, number)>, text ]
+			//                ["FINAL" | "INTERIM"...]
+			if(successCallback){
+				
+				var altRes;
+				if(respText.length > 1){
+					altRes = [];
+					for(var i=1,size=respText.length; i < size; ++i){
+						
+						if(respText[i]){//<- ignore empty lines
 							altRes.push({text: respText[i]});
 						}
 					}
-					
-					type = lastBlob? result_types.FINAL : result_types.INTERMEDIATE;
-					
-					successCallback(respText[0],1,type,altRes);
 				}
-
-			} else {
-				var err = asrErrorWrapper(oAjaxReq, this, dataSize);
-				errorCallback && errorCallback(err.message, err.status);
-				//TODO invoke error-callback for some of the error-codes (?)
+				
+				type = lastBlob? result_types.FINAL : result_types.INTERMEDIATE;
+				
+				successCallback(respText[0],1,type,altRes);
 			}
 
 		};
 
-		var ajaxFail = function(e) {
-			console.error("error ajax", e);
-			errorCallback && errorCallback(e);
+		var ajaxFail = function(jqXHR, textStatus, errorThrown) {
+			var err = asrErrorWrapper(jqXHR, dataSize);
+			if(errorCallback){
+				errorCallback(err.message, err.status);
+			} else {
+				console.error('Error response from server (status '+err.status+'): '+err.message);
+			}
 		};
 
 		var data = msg.buf; //is a blob
 		var dataSize = data.size;
-		//var sample_rate = 44100; //PB TODO do not "hard-code" this!
-//		console.log("Ajax-Data: ");
-//		console.log(data);
-
-		var oAjaxReq = new XMLHttpRequest();
 
 		var apiLang = getFixedLang();//TODO use options parameter from startRecord-/recognize-invocation
 
@@ -244,22 +239,23 @@ newWebAudioAsrImpl = (function NuanceWebAudioInputImpl(){
 		var appId = configurationManager.getString( [_pluginName, "appId"] ); 
 		var baseUrl = "https://dictation.nuancemobility.net/NMDPAsrCmdServlet/dictation";
 
-		//oAjaxReq.open("POST", "http://localhost:8080", true);
-		oAjaxReq.open("POST", baseUrl+"?appId="+appId+"&appKey="+appKey, true);
-
-		oAjaxReq.setRequestHeader("Content-Type", "audio/amr");
-		oAjaxReq.setRequestHeader("Accept", "text/plain");
-		//oAjaxReq.setRequestHeader("Accept-Language", apiLang);
-		oAjaxReq.setRequestHeader("Accept-Language", apiLang);
-
-		//oAjaxReq.setRequestHeader("Transfer-Encoding", "chunked"); //chrome does not allow this :/
-
-		oAjaxReq.onload = ajaxSuccess;
-		oAjaxReq.onerror = ajaxFail;
-
-		// oAjaxReq.responseType = 'json';
-		// oAjaxReq.setRequestHeader("User-Agent", "Mozilla/5.0 (Windows NT 6.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.63 Safari/537.36;");
-		oAjaxReq.send(data);
+		var options = {
+			url: baseUrl+"?appId="+appId+"&appKey="+appKey,
+			type: 'POST',
+			headers: {
+				'Content-Type': 'audio/amr',
+				'Accept': 'text/plain',			//NOTE cannot use jQuery option dataType='text', since jQuery automatically adds some Accept-entries which will result in an error-response
+				'Accept-Language': apiLang
+			},
+			processData: false,					//prevent jQuery from trying to process the (binary) data
+			data: data,
+			mmirSendType: 'binary',				//add custom marker to signify that we are sending binary data
+			
+			success: ajaxSuccess,
+			error: ajaxFail
+		};
+		
+		jquery.ajax(options);
 
 //		//FIXM russa DEBUG:
 //		if(typeof fileNameCounter !== 'undefined'){
