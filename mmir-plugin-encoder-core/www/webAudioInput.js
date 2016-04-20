@@ -1,4 +1,4 @@
-﻿/*
+﻿﻿/*
  * 	Copyright (C) 2012-2016 DFKI GmbH
  * 	Deutsches Forschungszentrum fuer Kuenstliche Intelligenz
  * 	German Research Center for Artificial Intelligence
@@ -88,6 +88,16 @@ newMediaPlugin = {
 		 * @memberOf Html5AudioInput#
 		 */
 		var _defaultCtxName = 'default';
+		
+		/**
+		 * STREAM_STARTED: Name for the event that is emitted, when
+		 *                 the audio input stream for analysis becomes available.
+		 * 
+		 * @private
+		 * @constant
+		 * @memberOf Html5AudioInput#
+		 */
+		var STREAM_STARTED_EVT_NAME = 'webaudioinputstarted';
 		
 		/** 
 		 * @type mmir.LanguageManager
@@ -294,11 +304,8 @@ newMediaPlugin = {
     				recorder.init(input);
     			}
     			
-    			//FIXME experimental callback/listener for on-start-record -> API may change!
-    			var onStartRecordListeners = mediaManager.getListeners('onallowrecord');
-    			for(var i=0, size = onStartRecordListeners.length; i < size; ++i){
-    				onStartRecordListeners[i](input, audio_context, recorder);
-    			}
+    			//notify listeners that a new web audio input stream was started
+    			mediaManager.mediaManager._fireEvent(STREAM_STARTED_EVT_NAME, [input, audio_context, recorder]);
     			
     			silenceDetection = recorder.processor;
     			
