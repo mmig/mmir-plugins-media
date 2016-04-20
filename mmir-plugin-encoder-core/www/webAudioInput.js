@@ -268,6 +268,10 @@ newMediaPlugin = {
     			stream = inputstream;
     			var input = audio_context.createMediaStreamSource(stream);
     			
+    			if(mediaManager.micLevelsAnalysis.enabled()){
+                	mediaManager.micLevelsAnalysis.start({inputSource: input, audioContext: audio_context});
+                }
+    			
     			if(!recorder){
     				var workerImpl = configurationManager.getString([_pluginName, 'encoder'], true);
     				if(!workerImpl){
@@ -467,6 +471,8 @@ newMediaPlugin = {
     		 */
     		var stopUserMedia = function(isStopSilenceDetection){
     			
+    			mediaManager.micLevelsAnalysis.stop();
+    			
     			if(recorder){
     				recorder.release();
     			};
@@ -534,7 +540,7 @@ newMediaPlugin = {
 					totalText = '';
     				audioProcessor.resetLastResult && audioProcessor.resetLastResult();
     				
-    				recording=true;
+    				recording=mediaManager.micLevelsAnalysis.active(true);
     			},
     			/**
 				 * @public
@@ -600,7 +606,7 @@ newMediaPlugin = {
     				totalText='';
     				audioProcessor.resetLastResult && audioProcessor.resetLastResult();
     				
-    				recording=true;
+    				recording=mediaManager.micLevelsAnalysis.active(true);
 
     			},
     			/**
@@ -658,11 +664,20 @@ newMediaPlugin = {
 		
 		_implFileName = implFile.toLowerCase();
 
-		var recLoaded = false, implLoaded = false;
+		var recLoaded = false, implLoaded = false, failed = false, micAnalysisLoaded = !!mediaManager.micLevelsAnalysis;
 		var checkInit = function(){
 			
-			if(recLoaded && implLoaded){
+			if(recLoaded && implLoaded && micAnalysisLoaded){
 
+				if(failed){
+					console.error('ERROR: failed to initialize webAudioInnput with module "'+implFile+'": '+err);
+					
+					//invoke callback without exporting functions:
+					callBack({});
+					
+					return;///////////////////// EARLY EXIT ////////////////////////
+				}
+				
 				var instance = htmlAudioConstructor();
 				
 				//initialize implementation:
@@ -675,15 +690,39 @@ newMediaPlugin = {
 		
 		//load the necessary scripts and then call htmlAudioConstructor
 		
-		commonUtils.loadScript(constants.getMediaPluginPath()+'recorderExt.js', function(){
-			recLoaded = true;
-			checkInit();
-		});
+		commonUtils.getLocalScript(constants.getMediaPluginPath()+'recorderExt.js', function success(){
+				recLoaded = true;
+				checkInit();
+			}, function error(err){
+				failed = err;
+				recLoaded = true;
+				checkInit();
+			}
+		);
 		
-		commonUtils.loadScript(constants.getMediaPluginPath()+implFile, function(){
-			implLoaded = true;
-			checkInit();
-		});
+		commonUtils.getLocalScript(constants.getMediaPluginPath()+implFile, function success(){
+				implLoaded = true;
+				checkInit();
+			}, function error(err){
+				failed = err;
+				implLoaded = true;
+				checkInit();
+			}
+		);
+		
+		if(!micAnalysisLoaded){
+			
+			//load mic-levels-analyzer for web audio input into MediaManager's default context:
+			mediaManager.loadFile('webMicLevels', function success(){
+					micAnalysisLoaded = true;
+					checkInit();
+				}, function error(err){
+					failed = err;
+					micAnalysisLoaded = true;
+					checkInit();
+				}
+			);
+		}
 		
 	}//END: initialize()
 		
