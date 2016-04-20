@@ -398,7 +398,7 @@ Application.prototype.initSpeechInputViz = function initSpeechInputViz(){
 		  var inputElement = $('#asr-text');
 		  //DISABLE if the inputElement is not present -> this is probably the wrong view...
 		  if(inputElement.length < 1){
-//			  mediaManager.removeListener('onallowrecord',onAllowRecordHandler);
+//			  mediaManager.removeListener('webaudioinputstarted',onAllowRecordHandler);
 			  return;
 		  }
 		  
@@ -670,7 +670,7 @@ Application.prototype.initSpeechInputViz = function initSpeechInputViz(){
 	  
 
 	  if(typeof MEDIA_ON_ALLOW_RECORD_LISTENER !== 'undefined' && MEDIA_ON_ALLOW_RECORD_LISTENER){
-		  mediaManager.removeListener('onallowrecord', MEDIA_ON_ALLOW_RECORD_LISTENER);
+		  mediaManager.removeListener('webaudioinputstarted', MEDIA_ON_ALLOW_RECORD_LISTENER);
 		  var dummy = MEDIA_ON_ALLOW_RECORD_LISTENER();
 		  if(dummy){
 			  onAllowRecordHandler(dummy.recordingStream, dummy.audioContext, dummy.recorderInstance);
@@ -681,7 +681,7 @@ Application.prototype.initSpeechInputViz = function initSpeechInputViz(){
 		  delete MEDIA_ON_ALLOW_RECORD_LISTENER;
 	  }
 	  
-	  mediaManager.addListener('onallowrecord', onAllowRecordHandler);
+	  mediaManager.addListener('webaudioinputstarted', onAllowRecordHandler);
 	  
 	  mediaManager.addListener('ondetectsentence', function(blob, inputId){
 //		  Recorder.forceDownload( blob, "myRecording" + ((inputId<10)?"0":"") + inputId + ".wav" );
