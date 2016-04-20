@@ -305,7 +305,7 @@ newMediaPlugin = {
     			}
     			
     			//notify listeners that a new web audio input stream was started
-    			mediaManager.mediaManager._fireEvent(STREAM_STARTED_EVT_NAME, [input, audio_context, recorder]);
+    			mediaManager._fireEvent(STREAM_STARTED_EVT_NAME, [input, audio_context, recorder]);
     			
     			silenceDetection = recorder.processor;
     			
