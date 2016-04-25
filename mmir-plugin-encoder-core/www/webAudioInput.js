@@ -478,8 +478,13 @@ newMediaPlugin = {
     		 */
     		var stopUserMedia = function(isStopSilenceDetection){
     			
+    			//set recording state to FALSE
+    			recording=mediaManager.micLevelsAnalysis.active(false);
+    			
+    			//stop analyzing input
     			mediaManager.micLevelsAnalysis.stop();
     			
+    			//release any references etc. the recorder may hold
     			if(recorder){
     				recorder.release();
     			};
