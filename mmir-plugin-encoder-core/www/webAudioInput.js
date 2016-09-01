@@ -541,7 +541,7 @@ newMediaPlugin = {
 					
     				audioProcessor.setCallbacks(textProcessor, currentFailureCallback, stopUserMedia, isUseIntermediateResults);
     				
-    				startUserMedia(function(){
+    				startUserMedia(function onRecStart(){
     					audioProcessor.initRec && audioProcessor.initRec();
     					recorder && recorder.clear();
         				recorder && recorder.record();
