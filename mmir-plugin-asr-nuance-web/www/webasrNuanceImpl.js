@@ -76,6 +76,12 @@ newWebAudioAsrImpl = (function NuanceWebAudioInputImpl(){
 	/** @memberOf NuanceWebAudioInputImpl# */
 	var lastBlob = false;
 	
+	/** @memberOf NuanceWebAudioInputImpl# */
+	var isUseIntermediateResults = false;
+
+	/** @memberOf NuanceWebAudioInputImpl# */
+	var closeMicFunc = void(0);
+	
 	/**
 	 * HELPER retrieve language setting and apply impl. specific corrections/adjustments
 	 * (i.e. deal with Nuance specific quirks for language/country codes)
@@ -171,12 +177,16 @@ newWebAudioAsrImpl = (function NuanceWebAudioInputImpl(){
 			break;
 		default:
 			msg = 'UNKNOWN ERROR';
-		break;
+			break;
 		}
+		
+		//TODO verify that these are "non fatal" and add others that may be non-fatal in "continuous" or "intermediate" asr mode
+		var isFatal = ! (status == '500' || status === '413' || status === '204' || status === '403');
 
 		return {
 			status: status,
-			message: msg
+			message: msg,
+			fatal: isFatal
 		};
 	};
 
@@ -223,9 +233,18 @@ newWebAudioAsrImpl = (function NuanceWebAudioInputImpl(){
 		};
 
 		var ajaxFail = function(jqXHR, textStatus, errorThrown) {
+			
 			var err = asrErrorWrapper(jqXHR, dataSize);
-			if(errorCallback){
-				errorCallback(err.message, err.status);
+			
+			//FIXME find solution for case that there was an error/problem, but ASR was not stopped
+			var asrStopped = false;
+			if(!isUseIntermediateResults || err.isFatal){
+				asrStopped = true;
+				closeMicFunc();
+			}
+			
+			if(errorCallback && asrStopped){//FIXME find solution for case that there was an error/problem, but ASR was not stopped
+				errorCallback(err.message, err.status, asrStopped);
 			} else {
 				console.error('Error response from server (status '+err.status+'): '+err.message);
 			}
@@ -250,7 +269,7 @@ newWebAudioAsrImpl = (function NuanceWebAudioInputImpl(){
 			},
 			processData: false,					//prevent jQuery from trying to process the (binary) data
 			data: data,
-			mmirSendType: 'binary',				//add custom marker to signify that we are sending binary data
+			mmirSendType: 'binary',				//add custom "marker" to signify that we are sending binary data
 			
 			success: ajaxSuccess,
 			error: ajaxFail
@@ -333,7 +352,15 @@ newWebAudioAsrImpl = (function NuanceWebAudioInputImpl(){
 		getPluginName: function(){
 			return _pluginName;
 		},
-		setCallbacks: function(successCallback, failureCallback){},//NOOP these need to be set in doSend() only
+		setCallbacks: function(successCallback, failureCallback, stopUserMedia, isIntermediateResults){
+
+//			currentSuccessCallback = successCallback;//needs to be set in doSend() only
+//			currentFailureCallback = failureCallback;//needs to be set in doSend() only
+			closeMicFunc = stopUserMedia;
+			isUseIntermediateResults = isIntermediateResults;
+		},
+			
+			function(successCallback, failureCallback){},//NOOP these need to be set in doSend() only
 //
 //			textProcessor = successCallback;
 //			currentFailureCallback = failureCallback;
