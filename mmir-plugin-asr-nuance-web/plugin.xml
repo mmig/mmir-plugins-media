@@ -2,7 +2,7 @@
 <plugin 
     xmlns="http://cordova.apache.org/ns/plugins/1.0"
     id="mmir-plugin-asr-nuance-web"
-    version="0.3.1">
+    version="0.3.2">
 
     <name>Nuance Web Speech Recognition</name>
     
