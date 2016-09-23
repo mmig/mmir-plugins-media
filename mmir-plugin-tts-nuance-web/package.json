@@ -1,0 +1,39 @@
+{
+  "name": "mmir-plugin-tts-nuance-web",
+  "version": "0.1.1",
+  "description": "\r\n      Cordova plugin for the MMIR framework that adds Text To Speech (TTS) synthesis via Nuance web services\r\n    ",
+  "cordova": {
+    "id": "mmir-plugin-tts-nuance-web",
+    "platforms": []
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mmig/mmir-plugins-media.git#master:mmir-plugin-tts-nuance-web"
+  },
+  "keywords": [
+    "cordova",
+    "speech",
+    "tts",
+    "synthesis",
+    "ecosystem:cordova"
+  ],
+  "engines": [
+    {
+      "name": "cordova",
+      "version": ">=5.0"
+    }
+  ],
+  "dependencies": {
+	  "mmir-install-cordova-assets": "../mmir-install-cordova-assets"
+  },
+  "scripts": {
+	  "postinstall": "mmir-install-cordova-assets",
+	  "preuninstall": "mmir-uninstall-cordova-assets"
+  },
+  "author": "russa, DFKI",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mmig/mmir-plugins-media/issues"
+  },
+  "homepage": "https://github.com/mmig/mmir-plugins-media/tree/master%3Ammir-plugin-tts-nuance-web#readme"
+}
