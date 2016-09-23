@@ -1,0 +1,37 @@
+{
+  "name": "mmir-install-cordova-assets",
+  "version": "0.1.0",
+  "description": "Tool for installing Cordova Plugins <assets> from npm-installed packages into the Cordova project's www folder",
+  "cordova": {
+    "id": "mmir-install-cordova-assets",
+    "platforms": []
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mmig/mmir-plugins-media.git#master:mmir-install-cordova-assets"
+  },
+  "keywords": [
+    "cordova",
+    "ecosystem:cordova"
+  ],
+  "engines": [
+    {
+      "name": "cordova",
+      "version": ">=5.0"
+    }
+  ],
+  "main": "install-assets.js",
+  "bin": {
+    "mmir-install-cordova-assets": "./bin/mmir-install-cordova-assets.js",
+    "mmir-uninstall-cordova-assets": "./bin/mmir-uninstall-cordova-assets.js"
+  },
+  "dependencies":{
+	"xmldom": "~0.1.21"
+  },
+  "author": "russa, DFKI",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mmig/mmir-plugins-media/issues"
+  },
+  "homepage": "https://github.com/mmig/mmir-plugins-media/tree/master%3Ammir-install-cordova-assets#readme"
+}
