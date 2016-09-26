@@ -46,18 +46,50 @@ check npm version with `npm -v`.
 
 ### Installation
 
+The media-plugins are setup as a _monorepo_, which is not directly supported by `npm`.
+
+For this reason, the media-plugins need to be installed from a local directory, instead of the git repo.
+
+That means, that the the git repo needs to be `clone`d  once, and then the depedencies need to be declared
+in relation to the local git repo direoctories.
+
+#### Clone mmir-pluings-media
+
+In the Cordova projects root, clone the media-plugins repo to a sub-directory, e.g. to `build/repo/mmir-plugins-media`.
+
+
+`git clone https://github.com/mmig/mmir-plugins-media.git build/repo/mmir-plugins-media`
+
+
+This can be directly combined with installing a media-plugin, e.g. for installing `mmir-plugin-asr-nuance-web`: 
+`git clone -q https://github.com/mmig/mmir-plugins-media.git build/repo/mmir-plugins-media & npm install build/repo/mmir-plugins-media/mmir-plugin-asr-nuance-web`
+
+(if the git repo already exists, an error message will be printed, that repo could not be cloned again)
+
+
+Cloning the media-plugins repo needs to be done only once. For _"updating"_ the plugins, the repo would need
+to be _pulled_ and the the plugins re-installed.
+
+
+
+#### Installing media-plugins
+
 Create a [package.json][2] file in the Cordova project, in which you want to use a media-plugin.
 
 Then declare the media-plugin(s) as `dependency` (or `devDependencies`) 
-in `package.json` and install them, e.g.
+in `package.json` and install them.
+
+For example, if the media-plugins repo was cloned to `build/repo/mmir-plugins-media`
 
 ```
   ...
   "devDependencies": {
-	"mmir-plugin-asr-nuance-web": "https://github.com/mmig/mmir-plugins-media.git#master:mmir-plugin-asr-nuance-web"
+	"mmir-plugin-asr-nuance-web": "build/repo/mmir-plugins-media/mmir-plugin-asr-nuance-web"
   },
   ...
 ```
+(i.e. reference to `<repo path>/<plugin name>` in the local file system)
+
 
 Then install the media-plugins using nodejs' `npm`:
 
