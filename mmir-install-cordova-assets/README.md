@@ -20,7 +20,7 @@ check npm version with `npm -v`.
 
 ## Usage in package.json
 
-Create a [package.json][2] file in the media-plugin directory, for which you want to
+Create a [package.json][1] file in the media-plugin directory, for which you want to
 enable copying/removal of asset files.
 
 Then declare all the media-plugin(s) dependencies in the `dependency` field of the
@@ -29,12 +29,13 @@ Then declare all the media-plugin(s) dependencies in the `dependency` field of t
 ```javascript
   ...
   "dependencies": {
-	"mmir-plugin-asr-nuance-web": "https://github.com/mmig/mmir-plugins-media.git#master:mmir-plugin-asr-nuance-web",
+	"mmir-plugin-asr-nuance-web": "file:/repo/mmir-plugins-media/mmir-plugin-asr-nuance-web",
 	...
-	"mmir-install-cordova-assets": "https://github.com/mmig/mmir-plugins-media.git#master:mmir-install-cordova-assets"
+	"mmir-install-cordova-assets": "file:/repo/mmir-plugins-media/mmir-install-cordova-assets"
   },
   ...
 ```
+
 
 For automatically copying the assets upon install (and removing them upon uninstall), declare the
 asset-installer's scripts in `package.json`, e.g.
@@ -94,3 +95,5 @@ assetInstaller.removeAssets(options);
 
 ```
 
+
+[1]: https://docs.npmjs.com/files/package.json
