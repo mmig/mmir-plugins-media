@@ -3,7 +3,7 @@
  *
  * modifications:
  * 
- * 	Copyright (C) 2015 DFKI GmbH
+ * 	Copyright (C) 2015-2016 DFKI GmbH
  * 	Deutsches Forschungszentrum fuer Kuenstliche Intelligenz
  * 	German Research Center for Artificial Intelligence
  * 	http://www.dfki.de
@@ -93,8 +93,8 @@ function record(inputBuffer){
 }
 
 function exportWAV(type){
-  var bufferL = mergeBuffers(recBuffersL, recLength);
-  var bufferR = mergeBuffers(recBuffersR, recLength);
+  var bufferL = mergeBuffersFloat(recBuffersL, recLength);
+  var bufferR = mergeBuffersFloat(recBuffersR, recLength);
   var interleaved = interleave(bufferL, bufferR);
   var dataview = encodeWAV(interleaved);
   var audioBlob = new Blob([dataview], { type: type });
@@ -103,13 +103,19 @@ function exportWAV(type){
 }
 
 function exportMonoWAV(type){
-  var bufferL = mergeBuffers(recBuffersL, recLength);
+  var bufferL = mergeBuffersFloat(recBuffersL, recLength);
   var dataview = encodeWAV(bufferL, true);
   var audioBlob = new Blob([dataview], { type: type });
 
   this.postMessage(audioBlob);
 }
 
+/**
+ * trigger message that sends the currently buffered (raw) audio
+ * 
+ * @param [id] OPTIONAL
+ * 		the transaction ID (if provided, the ID will be included in the sent message) 
+ */
 function getBuffers(id) {
 	
   var buffers = [];
