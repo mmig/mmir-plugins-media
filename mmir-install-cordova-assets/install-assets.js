@@ -4,6 +4,12 @@ var fs = require('fs');
 var path = require('path');
 var DOMParser = require('xmldom').DOMParser;
 
+
+var npmConfig = require('./util/npm-config')
+
+var CONFIG_NAME_ASSETS_MODULE_DIR = npmConfig.ASSETS_MODULE_DIR; 
+var CONFIG_NAME_TARGET_WWW_DIR    = npmConfig.TARGET_WWW_DIR;
+
 /**
  * flag:
  * check plugin.xml and config.xml strictly, i.e. xmlns attributes must have correct values.

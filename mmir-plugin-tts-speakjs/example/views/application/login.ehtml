@@ -1,0 +1,131 @@
+@contentFor("header"){
+    <h1>
+        @localize("mmig")
+    </h1>
+}@
+
+@contentFor("content"){
+
+<div class="app_content">
+
+<!-- ############################ ASR TESTING ########################## -->
+	<div data-role="fieldcontain">
+	    <label for="asr-text">Text:</label>
+	    <textarea id="asr-text" name="asr-text" rows="5"></textarea>
+    </div>
+    
+    sentence-mode: <button id="asr"  name="asr" data-inline="true" value="start">start</button>
+    
+    @*
+    normal mode: <button id="asr-normal"  name="asr-normal" data-inline="true" value="start"></button>
+    *@
+    
+    <button id="clear"  name="asr" data-inline="true" value="clear">clear</button>
+    
+    <br>
+    <span>Partial Result: <span id="asr-status"></span></span>
+    
+    <p></p>
+    
+    <hr/>
+<!-- ############################ ASR TESTING ########################## -->
+
+
+    <h2 style="margin-left: -0.3em;">
+        @localize("login_header")
+    </h2>
+    
+    <div style="padding-left: 0.5em; padding-top: 1em;">
+	    <div id="emailField" class="ui-field-contain">
+	        <label for="email">
+				@localize("user_name_place_holder")
+			</label>
+	        <input type="text" name="email" id="email"  placeholder="user name" value="MMIG-User" />
+	    </div>
+	    
+	    <div id="passwordField" class="ui-field-contain">
+	    	<label for="password">
+				@localize("password_place_holder")
+			</label>
+	    	<input type="password" name="password" id="password"  placeholder="password" value="mmig-user" />
+	    </div>
+	</div>
+
+    <button id="loginButton"  name="login_btn" data-inline="true" data-icon="arrow-r">
+        @localize("login_label")
+    </button>
+    
+    <div style="padding-top: 1em;"></div>
+    <hr/>
+    
+    <div id="signUpLabel" style="padding-top: 0.5em;">
+        <h4>
+            @localize("registration_text")
+        </h4>
+    </div>
+    
+    <button id="signUpButton" name="sign_up_btn" data-inline="true" data-icon="edit">
+        @localize("registration_label")
+    </button>
+    
+    <br/>
+    
+    @*
+     * Example with GUI elements for Speech Input
+     * Handlers for the GUI controls are added in the controller
+     * (see controllers/application.js).
+     *  
+     * Activate this by removing the enclosing comment-statements @* ... *@
+    @*
+    <hr/>
+    
+    <div class="ui-field-contain">
+	    <label for="asr-text">Speech Input Test:</label>
+	    <textarea id="asr-text" name="asr-text" rows="5"></textarea>
+    </div>
+    
+    <button id="asr"  name="asr" data-inline="true">start</button>
+    
+    <button id="clear"  name="clear" data-inline="true">clear</button>
+    
+    
+    <span>Partial Result: <span id="asr-status"></span></span>
+    
+    <br/>
+    *@
+    
+</div>
+
+}@
+
+@contentFor("footer"){    
+    <div id="lang_button" class="footer_button" style="width: 56px; height: 100%; display: table; float: right;">
+		<div id='flags-@localize("current_language")' style="display: table-cell; vertical-align: middle;width: 100%; height:100%;" class="flags footer_button">
+			<div style="display: table; width: 100%; height:100%;">
+	    		<div class="center_element lang_button_text footer_button_line_height" style="display: table-cell; vertical-align:middle; text-align: center;">
+					@localize("current_language")
+				</div>
+	    	</div>
+		</div>
+	</div>
+}@
+
+@contentFor("dialogs"){
+  
+  <div id="modal" style="
+	    width: 100%;
+	    height: 100%;
+	    position: fixed;
+	    top: 0px;
+	    left: 0px;
+	    display: none;
+	    z-index: 999;
+	    background-color: grey;
+	    opacity: 0.5;
+	"></div>
+	
+  <blockquote id="language-menu-panel" class='ui-language-panel login_background_gradient ui-body-a ui-corner-all'>
+  	@helper('get_language_menu') @*render('Application', 'languageMenu')*@
+  </blockquote>
+  
+}@

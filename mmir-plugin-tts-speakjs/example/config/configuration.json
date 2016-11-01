@@ -1,0 +1,47 @@
+{
+    "language": "en",
+    "usePrecompiledViews": "true",
+    "usePrecompiledGrammarsOnly": "true",
+    "grammarCompiler": "jscc",
+    
+    
+    "maryTextToSpeech": {
+    	"serverBasePath": "http://mary.dfki.de:59125/"
+    },
+    
+    "mediaManager": {
+    	"plugins": {
+    		"browser": ["html5AudioOutput",
+    		            {"mod": "webAudioInput", "config": "webasrGooglev1Impl"},
+    		            {"mod": "webAudioTextToSpeech", "config": "ttsSpeakJsImpl"}
+    		],
+    		"cordova": ["cordovaAudioOutput.js",
+    		            "androidAudioInput.js",
+    		            "androidTextToSpeech.js"
+    		]
+    	}
+    },
+    
+    "webAudioInput": {
+	    "default": "webasrGooglev1Impl"
+    },
+    
+    "html5AudioInput": {
+		"silenceBuffer": "2000000",
+	    "webSocketAddress": "ws://localhost:9999",
+	    "soundPackageSize": "4096"
+    },
+    
+    "nuanceHttpTextToSpeech": {
+    	"serverBasePath": "https://tts.nuancemobility.net:443/NMDPTTSCmdServlet/tts",
+    	"appId": "NMDPTRIAL_xxxxxx111111111111111111111",
+    	"appKey": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    },
+    
+    "silenceDetector": {
+    	"noiseTreshold": "0.1",
+	    "pauseCount": "3",
+	    "minimalSpeachCount": "3",
+	    "resetCount": "15"
+	}
+}

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin 
+    xmlns="http://cordova.apache.org/ns/plugins/1.0"
+    id="mmir-plugin-tts-speakjs"
+    version="0.0.1">
+
+    <name>speak.js Speech Synthesis</name>
+    
+    <keywords>cordova,speech,tts,synthesis</keywords>
+    
+    <description>
+      Cordova plugin for the MMIR framework that adds Text To Speech (TTS) synthesis via speak.js library
+    </description>
+
+    <author>russa, DFKI</author>
+
+    <engines>
+        <engine name="cordova" version=">=5.0" />
+    </engines>
+  
+    <!-- ASR plugin implementation for integration into MMIR framework  -->
+    <asset
+        src="www/ttsSpeakJsImpl.js"
+        target="mmirf/env/media/ttsSpeakJsImpl.js" />
+        
+    
+    <!-- WebWorker for generating the audio -->
+    <asset
+        src="www/speakWorkerExt.js"
+        target="mmirf/workers/speakWorkerExt.js" />
+        
+    <!-- library for generating the audio -->
+    <asset
+        src="www/speakGenerator.js"
+        target="mmirf/workers/speakGenerator.js" />
+        
+    <!-- library for generating the audio >
+    <asset
+        src="www/speakGenerator.min.js"
+        target="mmirf/workers/speakGenerator.min.js" /-->
+    
+</plugin>
