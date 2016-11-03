@@ -1,6 +1,6 @@
 {
   "name": "mmir-install-cordova-assets",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Tool for installing Cordova Plugins <assets> from npm-installed packages into the Cordova project's www folder",
   "cordova": {
     "id": "mmir-install-cordova-assets",
