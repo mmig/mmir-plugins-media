@@ -5,7 +5,7 @@ var path = require('path');
 var DOMParser = require('xmldom').DOMParser;
 
 
-var npmConfig = require('./util/npm-config')
+var npmConfig = require('./util/npm-config');
 
 var CONFIG_NAME_ASSETS_MODULE_DIR = npmConfig.ASSETS_MODULE_DIR; 
 var CONFIG_NAME_TARGET_WWW_DIR    = npmConfig.TARGET_WWW_DIR;
@@ -16,8 +16,259 @@ var CONFIG_NAME_TARGET_WWW_DIR    = npmConfig.TARGET_WWW_DIR;
  */
 var checkXmlStrict = true;
 
+function getSourcePluginPaths(isConfigModulePath, invokingModulePath, instMod) {
+//find plugin.xml file, that contain the plugin's <asset> declarations
+    var paths = [], xmlPath;
+    var isError;
+    if (isConfigModulePath) {
+
+        invokingModulePath = path.normalize(invokingModulePath);
+
+        xmlPath = getPluginXmlPath(invokingModulePath);
+        if (xmlPath) {
+            paths.push(xmlPath);
+        } else {
+            isConfigModulePath = false;
+            console.log('WARNING could not find plugin.xml in confuration path ' + invokingModulePath + ', trying to detect path...');
+        }
+    }
+
+    try {
+
+        if (isConfigModulePath) {
+            invokingModulePath = path.normalize(isConfigModulePath);
+        } else {
+            invokingModulePath = path.dirname(require.resolve(instMod));
+        }
+
+        xmlPath = getPluginXmlPath(invokingModulePath);
+
+        if (xmlPath) {
+            paths.push(xmlPath);
+        } else {
+            console.error(
+                'ERROR could not find plugin.xml in path from configuration value ' +
+                CONFIG_NAME_ASSETS_MODULE_DIR + ': ' + invokingModulePath);
+            isError = true;
+        }
+
+    } catch (ex) {
+        //DEBUG:
+        // console.log('ERROR resolve invoking mdoule: ' + instMod +', error: '+ex);//+', stack: '+ex.stack);
+        // console.log('trying to extract module path form env.Path instead ...');
+    }
+
+    if (paths.length < 1) {
+
+        //HACK npm adds the invoking module to the environment's path -> try to extract
+        //     the module's path by processing the process' Path variable
+
+        paths = getInvokingModuleFromEnvPath(paths, instMod);
+
+        if (paths.length !== 1) {
+
+            if (paths.length > 1)
+                console.log('WARNING found multpiple directories (' + paths.length + ') that may contain the plugin defintion');
+            else {
+                console.error(
+                    'ERROR could not find path for the plugin.xml.' +
+                    ' You can use the configuration value ' + CONFIG_NAME_ASSETS_MODULE_DIR +
+                    ' in package.json for specifying the absolute path to the root' +
+                    ' directory of the plugin with the assets (i.e. the directory' +
+                    ' where the plugin.xml can be found).');
+                isError = true;
+            }
+        }
+
+    }
+    return {paths: paths, invokingModulePath: invokingModulePath, error: isError};
+}
+
+function getTargetAssetPath(isConfigWwwPath, isCheckXmlStrict, mode) {
+
+    var isTargetDirDetected = true;
+    var wwwPath;
+    if (isConfigWwwPath) {
+
+        var projectRoot = isConfigWwwPath.replace(/www[\/]?$/ig, '');
+        //TODO should we really verify that its the Cordova project's www
+        //     (i.e. check for config.xml in the project's root), or
+        //     should we just check for existence of the target directory?
+        if (isCordovaProjectRoot(projectRoot, isCheckXmlStrict)) {
+            wwwPath = isConfigWwwPath;
+        } else {
+            isTargetDirDetected = false;
+        }
+
+    }
+    else {
+
+        //try to detect Cordova project path in the working dir's parents
+        var workingDir = process.cwd();
+        wwwPath = extractPathEndingWith(workingDir, 'node_modules', function verifyPath(foundPath) {
+
+            //find path that has /www as sibling to /node_modules, ie.
+            //	<path>/node_modules
+            //	<path>/www
+            //-> return <path>/www
+            var rootPath = foundPath.substring(0, foundPath.length - 'node_modules'.length);
+            var wwwPath = path.join(rootPath, 'www');
+
+            if (exists(wwwPath) && isCordovaProjectRoot(rootPath, isCheckXmlStrict)) {
+
+                return wwwPath;
+            }
+            return false;
+        });
+
+        if (wwwPath) {//FIXME debug
+            console.log('######## modify resource target-root: ' + wwwPath);
+            var newp = wwwPath.replace(/www\/?$/, '');
+            wwwPath = path.join(newp, 'src', 'assets');
+            console.log('######## new resource target-root: ' + wwwPath);
+        }
+
+        if (!wwwPath) {
+
+            isTargetDirDetected = false;
+            console.log('WARNING could not determine root directory for Cordova project! ' +
+                'you will have to ' + (mode === 'install' ? 'copy' : 'remove') +
+                ' the assets manually ' + (mode === 'install' ? 'to' : 'from') +
+                ' the /www directory of your project.\n' +
+                ' You can use the configuration value ' + CONFIG_NAME_TARGET_WWW_DIR +
+                ' in package.json for specifying the absolute path to the plubin\'s /www');
+            //NOTE continue: print source/target paths for assets that need to be
+        }
+    }
+    return {isTargetDirDetected: isTargetDirDetected, wwwPath: wwwPath};
+}
+function doProcessAssets(paths, mode, isCheckXmlStrict, wwwPath, isTargetDirDetected) {
+    
+    var i, size = paths.length;
+
+    var currentCount = 0;
+    var completeCount = 0;
+    var checkComplete = function (dirIndex, isIncrease) {
+        if (isIncrease) {
+            ++currentCount;
+        }
+//		console.log('  check complete['+dirIndex+'].size('+size+'): '+currentCount+'/'+completeCount+' -> '+(dirIndex >= size - 1 && currentCount >= completeCount));
+        if (dirIndex >= size - 1 && currentCount >= completeCount) {
+            console.log('----------------------------------------------------------\n');
+        }
+    };
+
+    //process the plugin.xml: find <asset> elments and copy the source files to the target location
+    for (i = 0; i < size; ++i) {
+
+        if (mode === 'install') {
+            console.log('  Copying assets from plugin directory at : ' + paths[i]);
+        }
+
+        try {
+
+            var xml = loadXml(paths[i]);
+
+            // console.log(xml);
+            if (isPluginXml(xml, isCheckXmlStrict)) {
+
+                var pluginDir = path.dirname(paths[i]);
+
+                var assets = xml.getElementsByTagName('asset');
+                var asset, strSrc, src, strTarget, target;
+                for (var j = 0, len = assets.length; j < len; ++j) {
+
+                    asset = assets[j];
+                    strSrc = getAttr(asset, 'src');
+                    if (!strSrc) {
+                        console.error('ERROR <asset> has no src attribute!');
+                        if (mode === 'install') {
+                            //cannot copy asset, if source is missing:
+                            checkComplete(i);
+                            continue;
+                        }
+                    }
+                    src = path.resolve(pluginDir, strSrc);
+
+                    strTarget = getAttr(asset, 'target');
+                    if (!strTarget) {
+                        console.error('ERROR <asset> has no target attribute! asset.src: ' + src);
+                        checkComplete(i);
+                        continue;
+                    }
+                    target = path.resolve(wwwPath, strTarget);
+
+                    if (isTargetDirDetected) {
+
+                        //increase complete-count, since we will actually do something with a file
+                        ++completeCount;
+
+                        if (mode === 'install') {
+
+                            //create target directories, if necessary
+                            mkDirs(path.dirname(target));
+
+                            (function (strSrc, src, strTarget, target, i) {
+                                //ASYNC copy
+                                copy(src, target, function (err) {
+                                    if (err) {
+                                        console.error('    ERROR failed to copy asset from ' + src + ' to ' + target + ', ' + err);
+                                    } else {
+                                        console.log('    copied asset ' + strSrc + ' -> ' + strTarget);
+                                    }
+                                    checkComplete(i, true);
+                                });
+                            })(strSrc, src, strTarget, target, i);
+
+                        } else {
+
+                            if (!exists(target)) {
+                                console.log('    WARNING cannot remove asset file, because it does not exist in target location ' + target);
+                                checkComplete(i, true);
+                                continue;
+                            }
+
+                            (function (strSrc, src, strTarget, target, i) {
+                                //ASYNC delete
+                                fs.unlink(target, function (err) {
+                                    if (!err) {
+                                        console.log('    removed asset from ' + strTarget);
+                                    } else {
+                                        console.error('    ERROR failed to remove asset from ' + target + ', ' + err);
+                                    }
+                                    checkComplete(i, true);
+                                });
+                            })(strSrc, src, strTarget, target, i);
+                        }
+
+                    } else {
+                        console.log('    Asset file: ' + src);
+                        checkComplete(i);
+                    }
+
+                }//END for(tags in plugin)
+
+            } else {
+                console.error(
+                    'ERROR XML at ' + paths[i] + ' is not a valid plugin.xml definition.' +
+                    ' Verify that it has the correct xmlns attribute definition and' +
+                    ' contains a valid <plugin> element');
+                checkComplete(i);
+            }
+
+        } catch (err) {
+            console.error('ERROR could open plugin.xml at ' + paths[i] + ': ' + err);
+            checkComplete(i);
+        }
+    }
+
+    if (size === 0) {
+        checkComplete(1);
+    }
+}
 /**
- * 
+ *
+ * @param {Object} options the options for processing the plugin's assets
  * @param {String} options.assetsModuleId
  * 						the ID of the module which contains the plugin assets that should be copied (or uninstalled).
  * 						This ID is used for trying to detect the file path to the target plugin.
@@ -60,244 +311,21 @@ function processAssets(options, mode){
 	
 	var isConfigModulePath = !!invokingModulePath;
 	var isConfigWwwPath = !!targetWwwPath;
-	
-	//find plugin.xml file, that contain the plugin's <asset> declarations
-	var paths = [], xmlPath;
-	if(isConfigModulePath){
-		
-		invokingModulePath = path.normalize(invokingModulePath)
-		
-		xmlPath = getPluginXmlPath(invokingModulePath);
-		if(xmlPath){
-			paths.push(xmlPath);
-		} else {
-			isConfigModulePath = false;
-			console.log('WARNING could not find plugin.xml in confuration path '+invokingModulePath+', trying to detect path...');
-		}
-	}
-	
-	try{
-		
-		var invokingModulePath;
-		if(isConfigModulePath){
-			invokingModulePath = path.normalize(isConfigModulePath);
-		} else {
-			invokingModulePath = path.dirname(require.resolve(instMod));
-		}
-		
-		xmlPath = getPluginXmlPath(invokingModulePath);
-		
-		if(xmlPath){
-			paths.push(xmlPath);
-		} else {
-			console.error(
-				'ERROR could not find plugin.xml in path from configuration value '+
-					CONFIG_NAME_ASSETS_MODULE_DIR+': '+invokingModulePath);
-			return false;//////////////// EARLY EXIT ////////////////////////
-		}
-		
-	} catch (ex){
-		//DEBUG:
-		// console.log('ERROR resolve invoking mdoule: ' + instMod +', error: '+ex);//+', stack: '+ex.stack);
-		// console.log('trying to extract module path form env.Path instead ...');
-	}
-	
-	if(paths.length < 1){
-		
-		//HACK npm adds the invoking module to the environment's path -> try to extract
-		//     the module's path by processing the process' Path variable
-		
-		paths = getInvokingModuleFromEnvPath(paths, instMod);
-		
-		if(paths.length !== 1){
-			
-			if(paths.length > 1)
-				console.log('WARNING found multpiple directories ('+paths.length+') that may contain the plugin defintion');
-			else {
-				console.error(
-					'ERROR could not find path for the plugin.xml.'+
-						' You can use the configuration value '+CONFIG_NAME_ASSETS_MODULE_DIR+
-						' in package.json for specifying the absolute path to the root'+
-						' directory of the plugin with the assets (i.e. the directory'+
-						' where the plugin.xml can be found).');
-				return false;///////////////// EARLY EXIT //////////////////////////////
-			}
-		}
-		
-	}
-	
-	var isTargetDirDetected = true;
-	var wwwPath;
-	if(isConfigWwwPath){
-		
-		var projectRoot = isConfigWwwPath.replace(/www[\/]?$/ig, '');
-		//TODO should we really verify that its the Cordova project's www
-		//     (i.e. check for config.xml in the project's root), or
-		//     should we just check for existence of the target directory?
-		if(isCordovaProjectRoot(rootPath, isCheckXmlStrict)){
-			wwwPath = isConfigWwwPath;
-		} else {
-			isTargetDirDetected = false;
-		}
-		
-	}
-	else {
-		
-		//try to detect Cordova project path in the working dir's parents
-		var workingDir = process.cwd();
-		wwwPath = extractPathEndingWith(workingDir, 'node_modules', function verifyPath(foundPath){
-			
-			//find path that has /www as sibling to /node_modules, ie.
-			//	<path>/node_modules
-			//	<path>/www
-			//-> return <path>/www
-			var rootPath = foundPath.substring(0, foundPath.length - 'node_modules'.length);
-			var wwwPath = path.join(rootPath, 'www');
-			
-			if(exists(wwwPath) && isCordovaProjectRoot(rootPath, isCheckXmlStrict)){
-				
-				return wwwPath;
-			}
-			return false;
-		});
-		
-		if(!wwwPath){
-			
-			isTargetDirDetected = false;
-			console.log('WARNING could not determine root directory for Cordova project! '+
-							'you will have to '+(mode === 'install'? 'copy' : 'remove')+
-							' the assets manually '+(mode === 'install'? 'to' : 'from')+
-							' the /www directory of your project.\n'+
-							' You can use the configuration value '+CONFIG_NAME_TARGET_WWW_DIR+
-							' in package.json for specifying the absolute path to the plubin\'s /www');
-			//NOTE continue: print source/target paths for assets that need to be 
-		}
-	}
-	
-	if(wwwPath){
+    var pluginPathsResult = getSourcePluginPaths(isConfigModulePath, invokingModulePath, instMod);
+    var paths = pluginPathsResult.paths;
+    invokingModulePath = pluginPathsResult.invokingModulePath;
+    if(pluginPathsResult.error){
+        return false;//////////////// EARLY EXIT ////////////////////////
+    }
+
+    var assetPathResult = getTargetAssetPath(isConfigWwwPath, isCheckXmlStrict, mode);
+    var isTargetDirDetected = assetPathResult.isTargetDirDetected;
+    var wwwPath = assetPathResult.wwwPath;
+
+    if(wwwPath){
 		console.log('  Target directory for '+(mode === 'install'? 'copying' : 'removing')+' assets: '+wwwPath);
 	}
-	
-	size = paths.length;
-	
-	var currentCount = 0;
-	var completeCount = 0;
-	var checkComplete = function(dirIndex, isIncrease){
-		if(isIncrease){
-			++currentCount;
-		}
-//		console.log('  check complete['+dirIndex+'].size('+size+'): '+currentCount+'/'+completeCount+' -> '+(dirIndex >= size - 1 && currentCount >= completeCount));
-		if(dirIndex >= size - 1 && currentCount >= completeCount){
-			console.log('----------------------------------------------------------\n');
-		}
-	}
-	
-	//process the plugin.xml: find <asset> elments and copy the source files to the target location
-	for(i=0; i < size; ++i){
-		
-		if(mode === 'install'){
-			console.log('  Copying assets from plugin directory at : '+paths[i]);
-		}
-		
-		try {
-			
-			var xml = loadXml(paths[i]);
-			
-			// console.log(xml);
-			if(isPluginXml(xml, isCheckXmlStrict)){
-				
-				var pluginDir = path.dirname(paths[i]);
-				
-				var assets = xml.getElementsByTagName('asset');
-				var asset, strSrc, src, strTarget, target;
-				for(var j=0,len=assets.length; j< len; ++j){
-					
-					asset = assets[j];
-					strSrc = getAttr(asset, 'src');
-					if(!strSrc){
-						console.error('ERROR <asset> has no src attribute!');
-						if(mode === 'install'){
-							//cannot copy asset, if source is missing:
-							checkComplete(i);
-							continue;
-						}
-					}
-					src = path.resolve(pluginDir, strSrc);
-					
-					strTarget = getAttr(asset, 'target');
-					if(!strTarget){
-						console.error('ERROR <asset> has no target attribute! asset.src: '+src);
-						checkComplete(i);
-						continue;
-					}
-					target = path.resolve(wwwPath, strTarget);
-					
-					if(isTargetDirDetected){
-						
-						//increase complete-count, since we will actually do something with a file
-						++completeCount;
-						
-						if(mode === 'install'){
-							
-							//create target directories, if necessary
-							mkDirs(path.dirname(target));
-							
-							(function(strSrc, src, strTarget, target){
-								//ASYNC copy
-								copy(src, target, function(){
-									console.log('    copied asset '+strSrc+' -> ' + strTarget);
-									checkComplete(i, true);
-								}, function(err){
-									console.error('    ERROR failed to copy asset from '+src+' to ' + target+', '+err);
-									checkComplete(i, true);
-								});
-							})(strSrc, src, strTarget, target);
-							
-						} else {
-							
-							if(!exists(target)){
-								console.log('    WARNING cannot remove asset file, because it does not exist in target location '+target);
-								checkComplete(i, true);
-								continue;
-							}
-							
-							(function(strSrc, src, strTarget, target){
-								//ASYNC delete
-								fs.unlink(target, function(err){
-									if(!err){
-										console.log('    removed asset from ' + strTarget);
-									} else {
-										console.error('    ERROR failed to remove asset from '+ target+', '+err);
-									}
-									checkComplete(i, true);
-								});
-							})(strSrc, src, strTarget, target);
-						}
-						
-					} else {
-						console.log('    Asset file: '+src);
-						checkComplete(i);
-					}
-					
-				}//END for(tags in plugin)
-				
-			} else {
-				console.error(
-					'ERROR XML at '+paths[i]+' is not a valid plugin.xml definition.'+
-					' Verify that it has the correct xmlns attribute definition and'+
-					' contains a valid <plugin> element');
-				checkComplete(i);
-			}
-			
-		} catch (err){
-			console.error('ERROR could open plugin.xml at '+paths[i]+': '+err);
-			checkComplete(i);
-		}
-	}
-	
-	if(size === 0){
-		checkComplete(1);
-	}
+    doProcessAssets(paths, mode, isCheckXmlStrict, wwwPath, isTargetDirDetected);
 	
 	//completed
 	return isTargetDirDetected;//TODO return INT code instead of boolean?
@@ -317,15 +345,17 @@ function removeAssets(options){
  * @param {Array<String>} [foundPaths]
  * 			 an array in which to store found paths.
  * 			 If omitted, a new array is created and returned
+ * @param {String} moduleId
+ * 			 the (npm) ID of the module
  * 
- * @returns the String-Array of found paths (i.e. foundPaths)
+ * @returns {Array<String>} the String-Array of found paths (i.e. foundPaths)
  */
 function getInvokingModuleFromEnvPath(foundPaths, moduleId){
 	
 	foundPaths = foundPaths? foundPaths : [];
 	var pathVar = process.env.Path;
 	var pathList = pathVar.split(path.delimiter);
-	var p, seg, i, j, size;
+	var p, seg, i, size, xmlPath;
 	for(i=0, size = pathList.length; i < size; ++i){
 	
 		p = pathList[i];
@@ -336,7 +366,7 @@ function getInvokingModuleFromEnvPath(foundPaths, moduleId){
 			//assume we have found the correct path, if there also exist the plugin.xml file, i.e.
 			// <some path>/<module id>/plugin.xml
 			//-> return the plugin.xml-path
-			foundPath = getPluginXmlPath(foundPath)
+			foundPath = getPluginXmlPath(foundPath);
 			if(foundPath)
 				return foundPath;
 			return false;
@@ -352,7 +382,9 @@ function getInvokingModuleFromEnvPath(foundPaths, moduleId){
 }
 
 /**
- * @param verifyFunc
+ * @param {String} completePath
+ * @param {String} pathSegment
+ * @param {Function} verifyFunc
  *         function(foundPath) for checking found paths.
  *			if returns FALSE: continue search
  *			if returns TRUE: this function will return foundPath
@@ -404,7 +436,7 @@ function mkDirs(thePath){
  * @param onFinished
  * @param onError
  */
-function copy(srcPath, targetPath, onFinished, onError){
+function copy(srcPath, targetPath, onFinished){
 	
 	var isFinished = false;
 	var instream, outstream;
@@ -418,10 +450,9 @@ function copy(srcPath, targetPath, onFinished, onError){
 	instream.pipe(outstream);
 
 	function done(err){
-		if(!isFinished){
+		if(!isFinished){//guard flag, so that callback may only be invoked once
 			isFinished = true;
-			if(err) onError(err);
-			else onFinished();
+			onFinished(err);
 		}
 	}
 }
