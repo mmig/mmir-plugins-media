@@ -13,12 +13,21 @@ function doStart(){
 	var installAssets = require('mmir-install-cordova-assets');
 	
 	//TODO add cmd support?
-	var result = installAssets.copyAssets(npmOptions.getConfigOptions());
 	
-	if(!result){
-		//-> an error occurred
-		process.exit(1);
+	var options = npmOptions.getConfigOptions();
+	
+	options.callback = function onComplete(error){
+		if(error){
+			//-> an error occurred
+			process.exit(1);
+		} else {
+			process.exit(0);
+		}
 	}
+	
+	installAssets.copyAssets(options);
+	
+	
 }
 
 doStart();
