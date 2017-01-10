@@ -66,7 +66,7 @@ newWebAudioTtsImpl = (function SpeakJsWebAudioTTSImpl(){
 		 *   
 		 * @memberOf SpeakJsWebAudioTTSImpl#
 		 */
-		var _langSeparator = '_';
+		var _langSeparator = '-';
 		
 		/** @memberOf SpeakJsWebAudioTTSImpl# */
 		var _getLangParam;
@@ -87,40 +87,39 @@ newWebAudioTtsImpl = (function SpeakJsWebAudioTTSImpl(){
 		};
 		
 		/**  @memberOf SpeakJsWebAudioTTSImpl# */
-		var generateTTSURL = function(text, options){
-			
-			//get authentification info from configuration.json:
-			// "<plugin name>": { "appId": ..., "appKey": ... }
-			// -> see Nuance developer account for your app-ID and app-key
-			var appId= _configurationManager.get([_pluginName, 'appId'], true, null);
-			var appKey= _configurationManager.get([_pluginName, 'appKey'], true, null);
-			
-			if(!appKey || !appId){
-				var msg = 'Invalid or missing authentification information for appId "'+appId+'" and appKey "'+appKey+'"';
-				console.error(msg);
-				if(onerror){
-					onerror(msg);
-				}
-				return;////////////////////////////// EARLY EXIT ////////////////////
+		var _setNumOpt = function(name, source, target){
+
+			if(source && source[name] && isFinite(source[name])){
+				target[name] = source[name];
 			}
 			
-			var baseUrl = _configurationManager.get(
-					[_pluginName, 'serverBasePath'], true, 
-					'https://tts.nuancemobility.net:443/NMDPTTSCmdServlet/tts'	//<- default value
-			);
+		};
+		
+		/**  @memberOf SpeakJsWebAudioTTSImpl# */
+		var getTTSOptions = function(options){
 			
-			var langParam;
+//			args['amplitude'] ? String(args['amplitude']) : '100',
+//		    args['wordgap'] ? String(args['wordgap']) : '0', // XXX
+//		    args['pitch'] ? String(args['pitch']) : '50',
+//		    args['speed'] ? String(args['speed']) : '175',
+//		    args['voice'] ? String(args['voice']) : 'en-us',
+		    		
+			var opts = {};
+			
 			var voice = _getVoiceParam(options);
+			if(!voice){
+				voice = _getFixedLang(options);	
+			}
 			if(voice){
-				langParam = '&voice=' + voice;
-			} else {
-				langParam = '&ttsLang=' + _getFixedLang(options);	
+				opts.voice = voice;
 			}
 			
-			//NOTE: text is not set in URL string, but in POST body
-//			text = encodeURIComponent(text);
+			_setNumOpt('amplitude', options, opts);
+			_setNumOpt('wordgap', options, opts);
+			_setNumOpt('pitch', options, opts);
+			_setNumOpt('speed', options, opts);
 			
-			return baseUrl + '?appId=' + appId + '&appKey=' + appKey + langParam;
+			return opts;
 		};
 		
 		/**  @memberOf SpeakJsWebAudioTTSImpl# */
@@ -128,7 +127,7 @@ newWebAudioTtsImpl = (function SpeakJsWebAudioTTSImpl(){
 			
 			var emptyAudio = _mediaManager.createEmptyAudio();
 			
-			sendRequest(sentence, emptyAudio, options, onend, onerror, oninit);
+			sendRequest(sentence, emptyAudio, getTTSOptions(options), onend, onerror, oninit);
 			
 			return emptyAudio;
 			
@@ -150,7 +149,7 @@ newWebAudioTtsImpl = (function SpeakJsWebAudioTTSImpl(){
 			 * 				WAV data (incl. header):
 			 * 				mono (1 channel), 32bit float, sample rate 22050 Hz
 			 */
-			var ajaxSuccess = function(data){
+			var onSuccess = function(data){
 					
 				//console.log(oReq.response);
 				
@@ -185,7 +184,7 @@ newWebAudioTtsImpl = (function SpeakJsWebAudioTTSImpl(){
 				options: options
 			}
 			
-			_pending[id] = ajaxSuccess;
+			_pending[id] = {success: onSuccess, error: onerror};
 			
 			//TODO add timeout handling -> invokes onerror
 			
@@ -199,19 +198,26 @@ newWebAudioTtsImpl = (function SpeakJsWebAudioTTSImpl(){
 		var workerPath = _consts.getWorkerPath() + 'speakWorkerExt.js';
 		var _worker = new Worker(workerPath);
 		/**
-		 * 
+		 * @memberOf SpeakJsWebAudioTTSImpl.worker
 		 */
 		_worker.onmessage = function(event) {
 			
 			var msg = event.data;
 			var id = msg.id;
+			var handler, data;
 			
 			if(_pending[id]){
 				
-				var handler = _pending[id];
-				delete _pending[id];
+				if(msg.error){
+					handler = _pending[id].error;
+					data = msg.message;
+				} else {
+					handler = _pending[id].success;
+					data = msg.data;
+				}
 				
-				handler(msg.data);
+				delete _pending[id];
+				handler(data);
 				
 			} else {
 				_mediaManager._log.error('Error: callback for audio ['+id+'] cannot be found!');
