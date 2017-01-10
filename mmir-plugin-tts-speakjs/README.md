@@ -2,18 +2,24 @@
 
 Cordova plugin for the MMIR framework that adds Text To Speech (TTS) synthesis via `speak.js` library
 
-## TODO
 
-* options/parameters
-  * amplitude
-  * pitch
-  * speed
-  * word gap
+The speak.js TTS implementation supports the following options (all optional):
+
+`voice` (or `language`): STRING one of `'en-us'` | `'de'` (DEFAULT: `'en-us'`)
+
+and non-standard options:
+
+`amplitude`: NUMBER How loud the voice will be (DEFAULT: 100) 
+`pitch`: NUMBER The voice pitch (DEFAULT: 50) 
+`speed`: NUMBER The speed at which to talk (words per minute) (DEFAULT: 175) 
+`wordgap`: NUMBER Additional gap between words in 10 ms units, i.e. `1` corresponds to a 10 ms duration (DEFAULT: 0) 
+
+## TODO
   
 * add fallback for non-WebWorker env
-* support error handler
 * support cancel? (i.e. during generation)
-* compile version with more languages? en, fr, de, spa, rus ...?
+* compile version with more languages? fr, spa, rus ...?
+  * impl. way for dynamically loading language resources?
 
 ## speak.js
 
