@@ -1,6 +1,6 @@
 {
   "name": "mmir-plugin-tts-speakjs",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "\r\n      Cordova plugin for the MMIR framework that adds Text To Speech (TTS) synthesis via speak.js library\r\n    ",
   "cordova": {
     "id": "mmir-plugin-tts-speakjs",
