@@ -13,9 +13,12 @@ onmessage = function(event) {
 	var msg = event.data;
 	var id = msg.id;
 	
-	var audioData = generateSpeech(msg.text, msg.options)
-	
-	postMessage({id: id, data: audioData});
+	try { 
+		var audioData = generateSpeech(msg.text, msg.options)
+		postMessage({id: id, data: audioData});
+	} catch(ex){
+		postMessage({id: id, error: true, message: ex.stack? ex.stack : ex.toString()});
+	}
   
 };
 
