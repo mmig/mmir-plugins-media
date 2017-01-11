@@ -36,13 +36,7 @@ newWebAudioTtsImpl = (function SpeakJsWebAudioTTSImpl(){
 			
 		/**  @memberOf SpeakJsWebAudioTTSImpl# */
 		var _pluginName = 'speakjsTextToSpeech';
-		
-		/** 
-		 * @type mmir.ConfigurationManager
-		 * @memberOf SpeakJsWebAudioTTSImpl#
-		 */
-		var _configurationManager = require('configurationManager');
-		
+				
 		/** 
 		 * @type mmir.MediaManager
 		 * @memberOf SpeakJsWebAudioTTSImpl#
