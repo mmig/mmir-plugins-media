@@ -154,9 +154,14 @@ newWebAudioTtsImpl = (function SpeakJsWebAudioTTSImpl(){
 					return;///////////////// EARLY EXIT //////////////
 				}
 				
-				//convert number-array to binary
-				var buffer=new ArrayBuffer(data.length);
-		        new Uint8Array(buffer).set(data);
+				var buffer;
+				if(data instanceof ArrayBuffer){
+					buffer = data;
+				} else {
+					//convert number-array to binary
+					buffer=new ArrayBuffer(data.length);
+					new Uint8Array(buffer).set(data);
+				}
 				
 				var wavBlob = new Blob( [new DataView(buffer)] );
 				
