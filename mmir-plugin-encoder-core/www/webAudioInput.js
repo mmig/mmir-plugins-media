@@ -68,6 +68,22 @@ newMediaPlugin = {
 			'_default':              _workerImpl.wav
 		};
 		
+		/**
+		 * Result types for recognition / text callbacks
+		 * 
+		 * @type Enum
+		 * @constant
+		 * @memberOf Html5AudioInput#
+		 */
+		var RESULT_TYPES = {
+			"FINAL": 				"FINAL",
+			"INTERIM": 				"INTERIM",
+			"INTERMEDIATE":			"INTERMEDIATE",
+			"RECOGNITION_ERROR": 	"RECOGNITION_ERROR",
+			"RECORDING_BEGIN": 		"RECORDING_BEGIN",
+			"RECORDING_DONE": 		"RECORDING_DONE"
+		};
+		
 		/** 
 		 * When specifying the implementation file for an Audio Module Context
 		 * 
@@ -214,8 +230,6 @@ newMediaPlugin = {
 			var recording = false;
 			
 			/** @memberOf Html5AudioInput# */
-			var lastBlob = false;
-			/** @memberOf Html5AudioInput# */
 			var isUseIntermediateResults = false;
 			/** 
 			 * @type AudioContext
@@ -238,7 +252,7 @@ newMediaPlugin = {
     		 * the function that is called on the recognized text that came back from the server
     		 * @memberOf Html5AudioInput#
     		 */
-    		var textProcessor = function(e,id){};
+    		var textProcessor = function(text, confidence, status, alternatives, unstable){};
     		/** 
     		 * @type WebWorker
     		 * @memberOf Html5AudioInput#
@@ -528,8 +542,26 @@ newMediaPlugin = {
     				if(intermediateResults){
         				textProcessor = successCallback;
     				} else {
-    					textProcessor = function(e, onEnd){
-    						totalText = totalText + ' '+e;
+    					/** 
+    					 * @param text
+    					 * @param confidence
+    					 * @param status
+    					 * @param alternatives
+    					 * 
+    					 * @memberOf media.plugin.html5AudioInput.prototype
+    					 */
+    					textProcessor = function(text, confidence, status, alternatives, unstable){
+
+    						//ignore non-recognition invocations
+    						if(status !== RESULT_TYPES.INTERMEDIATE && status !== RESULT_TYPES.INTERIM && status !== RESULT_TYPES.FINAL){
+    							return;
+    						}
+    						
+    						if(totalText){
+        						totalText = totalText + ' ' + text;
+    						} else {
+        						totalText = text;
+    						}
     					};
     				}
     				if (failureCallback){
@@ -548,7 +580,6 @@ newMediaPlugin = {
         				silenceDetection && silenceDetection.postMessage({cmd: 'start'});
     				});
     				
-    				lastBlob = false;
 					totalText = '';
     				audioProcessor.resetLastResult && audioProcessor.resetLastResult();
     				
@@ -566,17 +597,37 @@ newMediaPlugin = {
     				setTimeout(function(){
     					stopUserMedia(false);
         				if (successCallback){
-        					/** @memberOf media.plugin.html5AudioInput.prototype */
-        					textProcessor = function(e){
-        						if (audioProcessor.isLastResult()) {
-        							successCallback(totalText+ ' ' + e);
+        					/** 
+        					 * @param text
+        					 * @param confidence
+        					 * @param status
+        					 * @param alternatives
+        					 * 
+        					 * @memberOf media.plugin.html5AudioInput.prototype
+        					 */
+        					textProcessor = function(text, confidence, status, alternatives, unstable){
+        						
+        						//ignore non-recognition invocations
+        						if(status !== RESULT_TYPES.INTERMEDIATE && status !== RESULT_TYPES.INTERIM && status !== RESULT_TYPES.FINAL){
+        							return;
+        						}
+        						
+        						if(audioProcessor.isLastResult()) {
+        							
+        							if(totalText){
+                						totalText = totalText + ' ' + text;
+            						} else {
+                						totalText = text;
+            						}
+        							//NOTE: omit alternatives, since this is the cumulative result, and the alternatives
+        							//      are only for the last part
+        							successCallback(totalText, confidence, RESULT_TYPES.FINAL);
         						}
         						audioProcessor.resetLastResult && audioProcessor.resetLastResult();
         					};
         				}
         				audioProcessor.setCallbacks(textProcessor, currentFailureCallback, stopUserMedia);
         				
-        				lastBlob = true;
         				audioProcessor.setLastResult && audioProcessor.setLastResult();
         				
         				silenceDetection && silenceDetection.postMessage({cmd: 'stop'});
@@ -610,11 +661,9 @@ newMediaPlugin = {
         				
         				//TODO find better mechanism (or name?): this may not be the last blob (there may be silent audio)
         				//							             ... but it will be the last (successfully recognized) result!
-        				lastBlob = true;
         				audioProcessor.setLastResult && audioProcessor.setLastResult();
     				});
     				
-    				lastBlob = false;
     				totalText='';
     				audioProcessor.resetLastResult && audioProcessor.resetLastResult();
     				
@@ -626,7 +675,7 @@ newMediaPlugin = {
 				 * @memberOf Html5AudioInput.prototype
 				 * @see mmir.MediaManager#cancelRecognition
 				 */
-    			cancelRecognition: function(successCallback,failureCallback){
+    			cancelRecognition: function(successCallback, failureCallback){
     				
     				if (failureCallback){
     					currentFailureCallback = failureCallback;
@@ -634,7 +683,6 @@ newMediaPlugin = {
     				
     				stopUserMedia(false);
     				
-    				lastBlob = true;
     				audioProcessor.setLastResult && audioProcessor.setLastResult();
     				
     				silenceDetection && silenceDetection.postMessage({cmd: 'stop'});
