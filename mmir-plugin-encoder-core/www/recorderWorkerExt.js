@@ -176,13 +176,19 @@ function writeString(view, offset, string){
 }
 
 function encodeWAV(samples, mono){
+	
   var buffer = new ArrayBuffer(44 + samples.length * 2);
   var view = new DataView(buffer);
+  
+  var channels = mono? 1 : 2;
+  var bitsPerSample = 16;
+  var bytesPerSample = bitsPerSample / 8;
+  var length = samples.length * bytesPerSample;
 
   /* RIFF identifier */
   writeString(view, 0, 'RIFF');
   /* file length */
-  view.setUint32(4, 32 + samples.length * 2, true);
+  view.setUint32(4, 32 + length, true);
   /* RIFF type */
   writeString(view, 8, 'WAVE');
   /* format chunk identifier */
@@ -192,19 +198,19 @@ function encodeWAV(samples, mono){
   /* sample format (raw) */
   view.setUint16(20, 1, true);
   /* channel count */
-  view.setUint16(22, mono?1:2, true);
+  view.setUint16(22, channels, true);
   /* sample rate */
   view.setUint32(24, sampleRate, true);
   /* byte rate (sample rate * block align) */
-  view.setUint32(28, sampleRate * 4, true);
+  view.setUint32(28, sampleRate * channels * bytesPerSample, true);
   /* block align (channel count * bytes per sample) */
-  view.setUint16(32, 4, true);
+  view.setUint16(32, channels * bytesPerSample, true);
   /* bits per sample */
-  view.setUint16(34, 16, true);
+  view.setUint16(34, bitsPerSample, true);
   /* data chunk identifier */
   writeString(view, 36, 'data');
   /* data chunk length */
-  view.setUint32(40, samples.length * 2, true);
+  view.setUint32(40, length, true);
 
   floatTo16BitPCM(view, 44, samples);
 
