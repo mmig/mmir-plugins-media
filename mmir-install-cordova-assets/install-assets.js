@@ -13,6 +13,9 @@ var CONFIG_NAME_TARGET_WWW_DIR    = npmConfig.TARGET_WWW_DIR;
 
 var MMIR_BUILD_PROPERTIES_FILE = 'mmir-build.properties';
 var MMIR_BUILD_SETTINGS_FILE = 'mmir-build.settings';
+var MMIR_BUILD_DEFAULT_SETTINGS_FILE = 'mmir-build.settingsDefault';
+
+var MMIR_BUILD_RESOURCES_DIR = 'build/resources/';
 
 //optional dependency: used when Cordova/MMIR project dir is detected
 //                     (incl. the build folder) for loading the MMIR
@@ -646,6 +649,26 @@ function getMmirBuildProperties(rootPath, callback){//callback(error, props)
     var buildProps = path.join(rootPath, MMIR_BUILD_PROPERTIES_FILE);
     var buildSettings = path.join(rootPath, MMIR_BUILD_SETTINGS_FILE);
     var loadProp = path.join(rootPath, MMIR_BUILD_SCRIPT_DIR, MMIR_BUILD_PROPERTIES_LOADER_SCRIPT);
+
+    //if build-settings file does not exits, 
+    if(!exists(buildSettings)){
+
+        var defaultBuildSettings = path.join(rootPath, MMIR_BUILD_DEFAULT_SETTINGS_FILE);
+        var resDefaultBuildSettings = path.join(rootPath, MMIR_BUILD_RESOURCES_DIR, MMIR_BUILD_DEFAULT_SETTINGS_FILE);
+        
+    	if(exists(defaultBuildSettings)){
+
+	        
+	    	console.log('INFO: could not find '+buildSettings+', using '+defaultBuildSettings+' instead.');
+	    	buildSettings = defaultBuildSettings;
+	    	
+    	} else if(exists(resDefaultBuildSettings)){
+    		
+    		console.log('INFO: could not find '+buildSettings+', using '+resDefaultBuildSettings+' instead.');
+	    	buildSettings = resDefaultBuildSettings;
+    		
+    	}
+    }
 
     //verify that Cordova's config.xml is present in root
     var isMmirRescources = exists(buildProps) &&
