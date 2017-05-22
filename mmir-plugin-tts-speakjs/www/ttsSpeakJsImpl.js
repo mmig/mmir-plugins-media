@@ -36,24 +36,60 @@ newWebAudioTtsImpl = (function SpeakJsWebAudioTTSImpl(){
 			
 		/**  @memberOf SpeakJsWebAudioTTSImpl# */
 		var _pluginName = 'speakjsTextToSpeech';
-				
+		
+
+		/** 
+		 * legacy mode: use pre-v4 API of mmir-lib
+		 * @memberOf SpeakJsWebAudioTTSImpl#
+		 */
+		var _isLegacyMode = true;
+		/** 
+		 * Reference to the mmir-lib core (only available in non-legacy mode)
+		 * @type mmir
+		 * @memberOf SpeakJsWebAudioTTSImpl#
+		 */
+		var _mmir = null;
+		
+		//get mmir-lib core from global namespace:
+		_mmir = window[typeof MMIR_CORE_NAME === 'string'? MMIR_CORE_NAME : 'mmir'];
+		if(_mmir){
+			// set legacy-mode if version is < v4
+			_isLegacyMode = _mmir? _mmir.isVersion(4, '<') : true;
+		}
+		
+		/**
+		 * HELPER for require(): 
+		 * 		use module IDs (and require instance) depending on legacy mode
+		 * 
+		 * @param {String} id
+		 * 			the require() module ID
+		 * 
+		 * @returns {any} the require()'ed module
+		 * 
+		 * @memberOf SpeakJsWebAudioTTSImpl#
+		 */
+		var _req = function(id){
+			var name = (_isLegacyMode? '' : 'mmirf/') + id;
+			return _mmir? _mmir.require(name) : require(name);
+		};
+		
 		/** 
 		 * @type mmir.MediaManager
 		 * @memberOf SpeakJsWebAudioTTSImpl#
 		 */
-		var _mediaManager = require('mediaManager');
+		var _mediaManager = _req('mediaManager');
 
 		/** 
 		 * @type mmir.LanguageManager
 		 * @memberOf SpeakJsWebAudioTTSImpl#
 		 */
-		var _langManager = require('languageManager');
+		var _langManager = _req('languageManager');
 
 		/** 
 		 * @type mmir.Constants
 		 * @memberOf SpeakJsWebAudioTTSImpl#
 		 */
-		var _consts = require('constants');
+		var _consts = _req('constants');
 		
 		/**
 		 * separator char for language- / country-code (specific to Nuance language config / codes)
@@ -128,7 +164,7 @@ newWebAudioTtsImpl = (function SpeakJsWebAudioTTSImpl(){
 		};
 		
 //		if(typeof Recorder === 'undefined'){//debug: for saving generated audio as file -> load Recorder, if not already loaded
-//	    	require('commonUtils').getLocalScript(_consts.getMediaPluginPath()+'recorderExt.js', function(){
+//	    	_req('commonUtils').getLocalScript(_consts.getMediaPluginPath()+'recorderExt.js', function(){
 //	    		REC = Recorder;
 //	    	});
 //	    }

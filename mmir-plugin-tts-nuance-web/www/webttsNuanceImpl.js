@@ -39,27 +39,79 @@ newWebAudioTtsImpl = (function NuanceWebAudioTTSImpl(){
 		var _pluginName = 'nuanceHttpTextToSpeech';
 		
 		/** 
+		 * legacy mode: use pre-v4 API of mmir-lib
+		 * @memberOf NuanceWebAudioTTSImpl#
+		 */
+		var _isLegacyMode = true;
+		/** 
+		 * Reference to the mmir-lib core (only available in non-legacy mode)
+		 * @type mmir
+		 * @memberOf NuanceWebAudioTTSImpl#
+		 */
+		var _mmir = null;
+		
+		//get mmir-lib core from global namespace:
+		_mmir = window[typeof MMIR_CORE_NAME === 'string'? MMIR_CORE_NAME : 'mmir'];
+		if(_mmir){
+			// set legacy-mode if version is < v4
+			_isLegacyMode = _mmir? _mmir.isVersion(4, '<') : true;
+		}
+		
+		/**
+		 * HELPER for require(): 
+		 * 		use module IDs (and require instance) depending on legacy mode
+		 * 
+		 * @param {String} id
+		 * 			the require() module ID
+		 * 
+		 * @returns {any} the require()'ed module
+		 * 
+		 * @memberOf NuanceWebAudioTTSImpl#
+		 */
+		var _req = function(id){
+			var name = (_isLegacyMode? '' : 'mmirf/') + id;
+			return _mmir? _mmir.require(name) : require(name);
+		};
+		
+		/**
+		 * HELPER for cofigurationManager.get() backwards compatibility (i.e. legacy mode)
+		 * 
+		 * @param {String|Array<String>} path
+		 * 			the path to the configuration value
+		 * @param {any} [defaultValue]
+		 * 			the default value, if there is no configuration value for <code>path</code>
+		 * 
+		 * @returns {any} the configuration value
+		 * 
+		 * @memberOf NuanceWebAudioTTSImpl#
+		 */
+		var _conf = function(path, defaultValue){
+			return _isLegacyMode? _configurationManager.get(path, true, defaultValue) : _configurationManager.get(path, defaultValue);
+		};
+		
+		/** 
 		 * @type mmir.ConfigurationManager
 		 * @memberOf NuanceWebAudioTTSImpl#
 		 */
-		var _configurationManager = require('configurationManager');
+		var _configurationManager = _req('configurationManager');
 		
 		/** 
 		 * @type mmir.MediaManager
 		 * @memberOf NuanceWebAudioTTSImpl#
 		 */
-		var _mediaManager = require('mediaManager');
+		var _mediaManager = _req('mediaManager');
 
 		/** 
 		 * @type mmir.LanguageManager
 		 * @memberOf NuanceWebAudioTTSImpl#
 		 */
-		var _langManager = require('languageManager');
+		var _langManager = _req('languageManager');
 		/** 
-		 * @type jQuery
+		 * AJAX loader functions (similar to jQuery.ajax)
+		 * @type Function
 		 * @memberOf NuanceWebAudioTTSImpl#
 		 */
-		var jquery = require('jquery');
+		var ajax = _isLegacyMode? _req('jquery').ajax : _req('util/loadFile');
 		
 		/**
 		 * separator char for language- / country-code (specific to Nuance language config / codes)
@@ -92,8 +144,8 @@ newWebAudioTtsImpl = (function NuanceWebAudioTTSImpl(){
 			//get authentification info from configuration.json:
 			// "<plugin name>": { "appId": ..., "appKey": ... }
 			// -> see Nuance developer account for your app-ID and app-key
-			var appId= _configurationManager.get([_pluginName, 'appId'], true, null);
-			var appKey= _configurationManager.get([_pluginName, 'appKey'], true, null);
+			var appId= _conf([_pluginName, 'appId'], null);
+			var appKey= _conf([_pluginName, 'appKey'], null);
 			
 			if(!appKey || !appId){
 				var msg = 'Invalid or missing authentification information for appId "'+appId+'" and appKey "'+appKey+'"';
@@ -104,8 +156,8 @@ newWebAudioTtsImpl = (function NuanceWebAudioTTSImpl(){
 				return;////////////////////////////// EARLY EXIT ////////////////////
 			}
 			
-			var baseUrl = _configurationManager.get(
-					[_pluginName, 'serverBasePath'], true, 
+			var baseUrl = _conf(
+					[_pluginName, 'serverBasePath'], 
 					'https://tts.nuancemobility.net:443/NMDPTTSCmdServlet/tts'	//<- default value
 			);
 			
@@ -324,7 +376,7 @@ newWebAudioTtsImpl = (function NuanceWebAudioTTSImpl(){
 				error: ajaxFail
 			};
 			
-			audioObj.req = jquery.ajax(options);
+			audioObj.req = ajax(options);
 		};
 		
 		/**  @memberOf NuanceWebAudioTTSImpl# */

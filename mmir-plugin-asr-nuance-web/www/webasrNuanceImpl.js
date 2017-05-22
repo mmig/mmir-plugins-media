@@ -42,26 +42,62 @@ newWebAudioAsrImpl = (function NuanceWebAudioInputImpl(){
 	var _pluginName = 'nuanceWebAudioInput';
 
 	/** 
+	 * legacy mode: use pre-v4 API of mmir-lib
+	 * @memberOf NuanceWebAudioInputImpl#
+	 */
+	var _isLegacyMode = true;
+	/** 
+	 * Reference to the mmir-lib core (only available in non-legacy mode)
+	 * @type mmir
+	 * @memberOf NuanceWebAudioInputImpl#
+	 */
+	var _mmir = null;
+	
+	//get mmir-lib core from global namespace:
+	_mmir = window[typeof MMIR_CORE_NAME === 'string'? MMIR_CORE_NAME : 'mmir'];
+	if(_mmir){
+		// set legacy-mode if version is < v4
+		_isLegacyMode = _mmir? _mmir.isVersion(4, '<') : true;
+	}
+	
+	/**
+	 * HELPER for require(): 
+	 * 		use module IDs (and require instance) depending on legacy mode
+	 * 
+	 * @param {String} id
+	 * 			the require() module ID
+	 * 
+	 * @returns {any} the require()'ed module
+	 * 
+	 * @memberOf NuanceWebAudioInputImpl#
+	 */
+	var _req = function(id){
+		var name = (_isLegacyMode? '' : 'mmirf/') + id;
+		return _mmir? _mmir.require(name) : require(name);
+	};
+	
+	/** 
 	 * @type mmir.ConfigurationManager
 	 * @memberOf NuanceWebAudioInputImpl#
 	 */
-	var mediaManager = require('mediaManager');
+	var mediaManager = _req('mediaManager');
 
 	/** 
 	 * @type mmir.LanguageManager
 	 * @memberOf NuanceWebAudioInputImpl#
 	 */
-	var languageManager = require('languageManager');
+	var languageManager = _req('languageManager');
 	/** 
 	 * @type mmir.ConfigurationManager
 	 * @memberOf NuanceWebAudioInputImpl#
 	 */
-	var configurationManager = require('configurationManager');
+	var configurationManager = _req('configurationManager');
 	/** 
-	 * @type jQuery
+	 * AJAX loader functions (similar to jQuery.ajax)
+	 * @type Function
 	 * @memberOf NuanceWebAudioInputImpl#
 	 */
-	var jquery = require('jquery');
+	var ajax = _isLegacyMode? _req('jquery').ajax : _req('util/loadFile');
 	
 	/** @memberOf NuanceWebAudioInputImpl# */
 	var result_types = {
@@ -275,7 +311,7 @@ newWebAudioAsrImpl = (function NuanceWebAudioInputImpl(){
 			error: ajaxFail
 		};
 		
-		jquery.ajax(options);
+		ajax(options);
 
 //		//FIXM russa DEBUG:
 //		if(typeof fileNameCounter !== 'undefined'){

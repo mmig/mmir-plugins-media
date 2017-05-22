@@ -41,21 +41,56 @@ newWebAudioAsrImpl = (function GoogleWebAudioInputImpl(){
 	var _pluginName = 'googleWebAudioInput';
 
 	/** 
+	 * legacy mode: use pre-v4 API of mmir-lib
+	 * @memberOf GoogleWebAudioInputImpl#
+	 */
+	var _isLegacyMode = true;
+	/** 
+	 * Reference to the mmir-lib core (only available in non-legacy mode)
+	 * @type mmir
+	 * @memberOf GoogleWebAudioInputImpl#
+	 */
+	var _mmir = null;
+	
+	//get mmir-lib core from global namespace:
+	_mmir = window[typeof MMIR_CORE_NAME === 'string'? MMIR_CORE_NAME : 'mmir'];
+	if(_mmir){
+		// set legacy-mode if version is < v4
+		_isLegacyMode = _mmir? _mmir.isVersion(4, '<') : true;
+	}
+	
+	/**
+	 * HELPER for require(): 
+	 * 		use module IDs (and require instance) depending on legacy mode
+	 * 
+	 * @param {String} id
+	 * 			the require() module ID
+	 * 
+	 * @returns {any} the require()'ed module
+	 * 
+	 * @memberOf GoogleWebAudioInputImpl#
+	 */
+	var _req = function(id){
+		var name = (_isLegacyMode? '' : 'mmirf/') + id;
+		return _mmir? _mmir.require(name) : require(name);
+	};
+	
+	/** 
 	 * @type mmir.ConfigurationManager
 	 * @memberOf GoogleWebAudioInputImpl#
 	 */
-	var mediaManager = require('mediaManager');
+	var mediaManager = _req('mediaManager');
 
 	/** 
 	 * @type mmir.LanguageManager
 	 * @memberOf GoogleWebAudioInputImpl#
 	 */
-	var languageManager = require('languageManager');
+	var languageManager = _req('languageManager');
 	/** 
 	 * @type mmir.ConfigurationManager
 	 * @memberOf GoogleWebAudioInputImpl#
 	 */
-	var configurationManager = require('configurationManager');
+	var configurationManager = _req('configurationManager');
 	
 	/** @memberOf GoogleWebAudioInputImpl# */
 	var result_types = {

@@ -32,6 +32,57 @@ newMediaPlugin = {
 		/**  @memberOf Html5AudioInput# */
 		var _basePluginName = 'webAudioInput';
 
+		/** 
+		 * legacy mode: use pre-v4 API of mmir-lib
+		 * @memberOf Html5AudioInput#
+		 */
+		var _isLegacyMode = true;
+		/** 
+		 * Reference to the mmir-lib core (only available in non-legacy mode)
+		 * @type mmir
+		 * @memberOf Html5AudioInput#
+		 */
+		var _mmir = null;
+		
+		//get mmir-lib core from global namespace:
+		_mmir = window[typeof MMIR_CORE_NAME === 'string'? MMIR_CORE_NAME : 'mmir'];
+		if(_mmir){
+			// set legacy-mode if version is < v4
+			_isLegacyMode = _mmir? _mmir.isVersion(4, '<') : true;
+		}
+		
+		/**
+		 * HELPER for require(): 
+		 * 		use module IDs (and require instance) depending on legacy mode
+		 * 
+		 * @param {String} id
+		 * 			the require() module ID
+		 * 
+		 * @returns {any} the require()'ed module
+		 * 
+		 * @memberOf Html5AudioInput#
+		 */
+		var _req = function(id){
+			var name = (_isLegacyMode? '' : 'mmirf/') + id;
+			return _mmir? _mmir.require(name) : require(name);
+		};
+		
+		/**
+		 * HELPER for cofigurationManager.get() backwards compatibility (i.e. legacy mode)
+		 * 
+		 * @param {String|Array<String>} path
+		 * 			the path to the configuration value
+		 * @param {any} [defaultValue]
+		 * 			the default value, if there is no configuration value for <code>path</code>
+		 * 
+		 * @returns {any} the configuration value
+		 * 
+		 * @memberOf Html5AudioInput#
+		 */
+		var _conf = function(path, defaultValue){
+			return _isLegacyMode? configurationManager.get(path, true, defaultValue) : configurationManager.get(path, defaultValue);
+		};
+		
 		/**
 		 * Default implementation for WebAudioInput: Google Recognition Web Service v1
 		 * @memberOf Html5AudioInput#
@@ -119,22 +170,22 @@ newMediaPlugin = {
 		 * @type mmir.LanguageManager
 		 * @memberOf Html5AudioInput#
 		 */
-		var languageManager = require('languageManager');
+		var languageManager = _req('languageManager');
 		/** 
 		 * @type mmir.ConfigurationManager
 		 * @memberOf Html5AudioInput#
 		 */
-		var configurationManager = require('configurationManager');
+		var configurationManager = _req('configurationManager');
 		/** 
 		 * @type mmir.Constants
 		 * @memberOf Html5AudioInput#
 		 */
-		var constants = require('constants');
+		var constants = _req('constants');
 		/** 
 		 * @type mmir.CommonUtils
 		 * @memberOf Html5AudioInput#
 		 */
-		var commonUtils = require('commonUtils');
+		var commonUtils = _req('commonUtils');
 
 		/**  @memberOf Html5AudioInput# */
 		var audioProcessor = {
@@ -297,7 +348,7 @@ newMediaPlugin = {
                 }
     			
     			if(!recorder){
-    				var workerImpl = configurationManager.getString([_pluginName, 'encoder'], true);
+    				var workerImpl = _conf([_pluginName, 'encoder']);
     				if(!workerImpl){
     					//try to find worker implementation by (known) plugin names (fallback to default, if not known)
     					workerImpl = _defaultWorkerImpl[_implFileName] || _defaultWorkerImpl._default; 
@@ -412,9 +463,9 @@ newMediaPlugin = {
     			/** @memberOf Html5AudioInput.recorder# */
     			var silenceDetectionConfig = {
 					sampleRate: input.context.sampleRate,
-					noiseTreshold : configurationManager.get(["silenceDetector", "noiseTreshold"]),
-					pauseCount : configurationManager.get(["silenceDetector", "pauseCount"]),
-					resetCount : configurationManager.get(["silenceDetector", "resetCount"])
+					noiseTreshold : _conf(["silenceDetector", "noiseTreshold"]),
+					pauseCount : _conf(["silenceDetector", "pauseCount"]),
+					resetCount : _conf(["silenceDetector", "resetCount"])
 				};
     			
     			//initialize silence-detection:
@@ -703,13 +754,13 @@ newMediaPlugin = {
 			
 		} else if(ctxId){
 			//if plugin was loaded into a specific context, check, if there is a configuration value for this context)
-			implFile = configurationManager.get(configPath, true);
+			implFile = _conf(configPath);
 		}
 		
 		if(!implFile){
 			//use default configuration path
 			configPath[1] = _defaultCtxName;
-			implFile = configurationManager.get(configPath, true);
+			implFile = _conf(configPath);
 		}
 		
 		if(!implFile){
