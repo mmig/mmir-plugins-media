@@ -107,6 +107,14 @@ newWebAudioAsrImpl = (function Googlev1WebAudioInputImpl() {
 	/** @memberOf Googlev1WebAudioInputImpl# */
 	var isUseIntermediateResults = false;
 	
+	/**
+	 * Recognition options for current recognition process.
+	 * 
+	 * @memberOf Googlev1WebAudioInputImpl#
+	 * @see mmir.MediaManager#recognize
+	 */
+	var currentOptions;
+	
 	/** 
 	 * for gathering partial ASR results when using startRecord:
 	 * @memberOf Googlev1WebAudioInputImpl#
@@ -196,7 +204,8 @@ newWebAudioAsrImpl = (function Googlev1WebAudioInputImpl() {
 		if (webSocket){
 			webSocket.close();
 		}
-		webSocket = new WebSocket(configurationManager.getString( [_pluginName, "webSocketAddress"] ));
+		var address = currentOptions.webSocketAddress? currentOptions.webSocketAddress : configurationManager.getString( [_pluginName, "webSocketAddress"] );
+		webSocket = new WebSocket(address);
 
 		/**  @memberOf Googlev1WebAudioInputImpl.webSocket# */
 		webSocket.onopen = function () {
@@ -304,12 +313,13 @@ newWebAudioAsrImpl = (function Googlev1WebAudioInputImpl() {
 						//mediaManager.playWAV(blob,function(){},function(){alert("could not play blob");});
 						if (!hasActiveId) {
 	
-							doSend("language "+ languageManager.getLanguage());//FIXME use languageManager.getLanguageConfig(_pluginName) instead?
+							var lang = currentOptions.language? currentOptions : languageManager.getLanguage();//FIXME use languageManager.getLanguageConfig(_pluginName) instead?
+							doSend("language "+ lang);
 	
 							inputId = findLowestFreeId();
 							hasActiveId = true;
 							doSend("start "+ inputId);
-							buffer = configurationManager.get([_pluginName, "silenceBuffer"]);
+							buffer = currentOptions.silenceBuffer? currentOptions.silenceBuffer : configurationManager.get([_pluginName, "silenceBuffer"]);
 						}	else {
 							buffer = 0;
 						}
@@ -344,7 +354,7 @@ newWebAudioAsrImpl = (function Googlev1WebAudioInputImpl() {
 							inputId = findLowestFreeId();
 							hasActiveId = true;
 							doSend("start "+ inputId);
-							buffer = configurationManager.get([_pluginName, "silenceBuffer"]);
+							buffer = currentOptions.silenceBuffer? currentOptions.silenceBuffer : configurationManager.get([_pluginName, "silenceBuffer"]);
 						}	else {
 							buffer = 0;
 						}
@@ -408,12 +418,14 @@ newWebAudioAsrImpl = (function Googlev1WebAudioInputImpl() {
 		getPluginName: function(){
 			return _pluginName;
 		},
-		setCallbacks: function(successCallback, failureCallback, stopUserMedia, isIntermediateResults){
+		setCallbacks: function(successCallback, failureCallback, stopUserMedia, options){
 
 			textProcessor = successCallback;
 			currentFailureCallback = failureCallback;
 			closeMicFunc = stopUserMedia;
-			isUseIntermediateResults = isIntermediateResults;
+			
+			currentOptions = options;
+			isUseIntermediateResults = options.intermediate;
 		},
 		setLastResult: function(){
 			lastBlob = true;
