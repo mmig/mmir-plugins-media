@@ -2,7 +2,7 @@
 <plugin 
     xmlns="http://cordova.apache.org/ns/plugins/1.0"
     id="mmir-plugin-asr-google-web"
-    version="0.2.0">
+    version="0.3.0">
 
     <name>Google Web Speech Recognition v2</name>
     

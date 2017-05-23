@@ -1,6 +1,6 @@
 {
   "name": "mmir-plugin-asr-google-web",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "\r\n      Cordova plugin for the MMIR framework that allows Automatic Speech Recognition (ASR)\r\n      via Google web speech recognition services (v2)\r\n    ",
   "cordova": {
     "id": "mmir-plugin-asr-google-web",
