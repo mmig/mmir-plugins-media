@@ -192,12 +192,15 @@ newMediaPlugin = {
 			/**
     		 * Initializes the connection/send-function.
     		 * 
-    		 * Will be set/"overwritten" by specific implementation.
+    		 * MUST be set/"overwritten" by specific implementation.
+			 * 
+			 * @param {Function} stopUserMediaFunc
+			 * 			the function that will stop the user-media ("close microphone")
 			 * 
 			 * @protected
     		 * @memberOf Html5AudioInput.AudioProcessor#
     		 */
-	      	_init: function(){
+	      	_init: function(stopUserMediaFunc){
 	      		
 	      		//NOTE _init may get called before audioProcessor impl. is loaded
 	      		//     -> cache these invocation and apply them later, when audioProcessor is loaded
@@ -207,26 +210,216 @@ newMediaPlugin = {
 	      		
 	      		this._cached.push(arguments);
 	      	},
+			/**
+			 * Hook that initializes the audio processor's callback functions and settings.
+			 * 
+			 * This function is called, before opening the microphone,
+			 * starting the recognition process etc. 
+			 * 
+			 * 
+			 * MUST be set/"overwritten" by specific implementation.
+			 * 
+			 * 
+			 * @param {Function} successCallback
+			 * 			callback will be called by the sendData-implementation
+			 * 			when sending was successful.
+    		 * 				<pre>
+    		 * 				successCallback(
+    		 * 					text: String | "",
+    		 * 					confidence: Number | Void,
+    		 * 					status: "FINAL"|"INTERIM"|"INTERMEDIATE",
+    		 * 					alternatives: Array<{result: String, score: Number}> | Void,
+    		 * 					unstable: String | Void
+    		 * 				)
+    		 * 				</pre>
+			 * 
+			 * @param {Function} failureCallback
+			 * 			callback will be called by the sendData-implementation
+			 * 			if an error occurred:
+			 * 				<pre>
+			 * 					failureCallback(error)
+			 * 				</pre>
+			 * 
+			 * @param {Function} stopUserMediaFunc
+			 * 			the function that will stop the user-media ("close microphone")
+			 * 
+			 * @param {PlainObject} options
+			 * 			options for Automatic Speech Recognition:
+			 * 			<pre>{
+			 * 				  success: OPTIONAL Function, the status-callback (see arg successCallback)
+			 * 				, error: OPTIONAL Function, the error callback (see arg failureCallback)
+			 * 				, language: OPTIONAL String, the language for recognition (if omitted, the current language setting is used)
+			 * 				, intermediate: OTPIONAL Boolean, set true for receiving intermediate results (NOTE not all ASR engines may support intermediate results)
+			 * 				, results: OTPIONAL Number, set how many recognition alternatives should be returned at most (NOTE not all ASR engines may support this option)
+			 * 				, mode: OTPIONAL "search" | "dictation", set how many recognition alternatives should be returned at most (NOTE not all ASR engines may support this option)
+			 * 				, eosPause: OTPIONAL "short" | "long", length of pause after speech for end-of-speech detection (NOTE not all ASR engines may support this option)
+			 * 				, disableImprovedFeedback: OTPIONAL Boolean, disable improved feedback when using intermediate results (NOTE not all ASR engines may support this option)
+			 * 			}</pre>
+			 * 
+			 */
+			setCallbacks: function(successCallback, failureCallback, stopUserMediaFunc, options){},
     		/** 
     		 * Initializes/prepares the next recognition session.
     		 * 
-    		 * Will be set/"overwritten" by specific implementation.
+    		 * MUST be set/"overwritten" by specific implementation.
 			 * 
 			 * @protected
     		 * @memberOf Html5AudioInput.AudioProcessor#
     		 */
       		initRec: function(){},
-      		/**  
-			 * Will be set/"overwritten" by specific implementation.
+      		/**
+      		 * Hook that is called, when audio data was encoded.
+      		 * 
+      		 * Implementation should send the data to the recognition-service,
+      		 * and call <code>successCallback</code> with the recognition results.
+      		 * 
+			 * MUST be set/"overwritten" by specific implementation.
+			 * 
+			 * @param {any} audioData
+			 * 			the (binary) audio data (e.g. PCM, FLAC, ...)
+			 * 
+			 * @param {Function} successCallback
+			 * 			callback will be called by the sendData-implementation
+			 * 			when sending was successful.
+    		 * 				<pre>
+    		 * 				successCallback(
+    		 * 					text: String | "",
+    		 * 					confidence: Number | Void,
+    		 * 					status: "FINAL"|"INTERIM"|"INTERMEDIATE",
+    		 * 					alternatives: Array<{result: String, score: Number}> | Void,
+    		 * 					unstable: String | Void
+    		 * 				)
+    		 * 				</pre>
+			 * 
+			 * @param {Function} failureCallback
+			 * 			callback will be called by the sendData-implementation
+			 * 			if an error occurred:
+			 * 				<pre>
+			 * 					failureCallback(error)
+			 * 				</pre>
 			 * 
 			 * @memberOf Html5AudioInput.AudioProcessor#
+			 * 
+			 * @see mmir.MediaManager#recognize
+			 * @see mmir.MediaManager#startRecord
 			 */
-    		sendData: function(msg){},
-			oninit: function(){},
+    		sendData: function(audioData, successCallback, failureCallback){},
+    		/**
+    		 * CAN be set/"overwritten" by specific implementation:
+    		 * callback that is invoked when silence detection was <code>initialized</code>.
+    		 * 
+    		 * @param {PlainObject} message
+    		 * 			the message from the silence detection
+    		 * @param {Function} successCallback
+    		 * 			the success callback for the recognition
+    		 * 			(<code>recognize()</code> or <code>startRecord()</code>)
+    		 * @param {Function} failureCallback
+    		 * 			the error callback for the recognition
+    		 * 			(<code>recognize()</code> or <code>startRecord()</code>)
+    		 * 
+    		 * @returns {any} if the returned values is not <code>undefined</code>
+    		 * 					and FALSY, the message from the silence detection
+    		 * 					will NOT be propagated to the encoder/recognizer.
+    		 */
+			oninit: function(message, successCallback, failureCallback){},
+			/**
+    		 * CAN be set/"overwritten" by specific implementation:
+    		 * callback that is invoked when silence detection was <code>started</code>.
+    		 * 
+    		 * @param {PlainObject} message
+    		 * 			the message from the silence detection
+    		 * @param {Function} successCallback
+    		 * 			the success callback for the recognition
+    		 * 			(<code>recognize()</code> or <code>startRecord()</code>)
+    		 * @param {Function} failureCallback
+    		 * 			the error callback for the recognition
+    		 * 			(<code>recognize()</code> or <code>startRecord()</code>)
+    		 * 
+    		 * @returns {any} if the returned values is not <code>undefined</code>
+    		 * 					and FALSY, the message from the silence detection
+    		 * 					will NOT be propagated to the encoder/recognizer.
+    		 */
 			onstarted: function(){},
+			/**
+    		 * CAN be set/"overwritten" by specific implementation:
+    		 * callback that is invoked when silence detection was <code>stopped</code>.
+    		 * 
+    		 * @param {PlainObject} message
+    		 * 			the message from the silence detection
+    		 * @param {Function} successCallback
+    		 * 			the success callback for the recognition
+    		 * 			(<code>recognize()</code> or <code>startRecord()</code>)
+    		 * @param {Function} failureCallback
+    		 * 			the error callback for the recognition
+    		 * 			(<code>recognize()</code> or <code>startRecord()</code>)
+    		 * 
+    		 * @returns {any} if the returned values is not <code>undefined</code>
+    		 * 					and FALSY, the message from the silence detection
+    		 * 					will NOT be propagated to the encoder/recognizer.
+    		 */
 			onstopped: function(){},
+			/**
+    		 * CAN be set/"overwritten" by specific implementation:
+    		 * callback that is invoked when silence detection signaled <code>send partial result</code>,
+    		 * i.e. that there is still some speech/noise, but the size limit (for sending audio
+    		 * data to the recognition service within one request ) is reached, so the audio 
+    		 * data should be sent now.
+    		 * 
+    		 * TODO remove
+    		 * @deprecated
+    		 * 
+    		 * @param {PlainObject} message
+    		 * 			the message from the silence detection
+    		 * @param {Function} successCallback
+    		 * 			the success callback for the recognition
+    		 * 			(<code>recognize()</code> or <code>startRecord()</code>)
+    		 * @param {Function} failureCallback
+    		 * 			the error callback for the recognition
+    		 * 			(<code>recognize()</code> or <code>startRecord()</code>)
+    		 * 
+    		 * @returns {any} if the returned values is not <code>undefined</code>
+    		 * 					and FALSY, the message from the silence detection
+    		 * 					will NOT be propagated to the encoder/recognizer.
+    		 */
 			onsendpart: function(){},
+			/**
+    		 * CAN be set/"overwritten" by specific implementation:
+    		 * callback that is invoked when silence detection signaled <code>silence detected</code>,
+    		 * i.e. that there was some speech/noise, and now it is silent again ("end of noise detected").
+    		 * 
+    		 * @param {PlainObject} message
+    		 * 			the message from the silence detection
+    		 * @param {Function} successCallback
+    		 * 			the success callback for the recognition
+    		 * 			(<code>recognize()</code> or <code>startRecord()</code>)
+    		 * @param {Function} failureCallback
+    		 * 			the error callback for the recognition
+    		 * 			(<code>recognize()</code> or <code>startRecord()</code>)
+    		 * 
+    		 * @returns {any} if the returned values is not <code>undefined</code>
+    		 * 					and FALSY, the message from the silence detection
+    		 * 					will NOT be propagated to the encoder/recognizer.
+    		 */
 			onsilencedetected: function(){},
+			/**
+    		 * CAN be set/"overwritten" by specific implementation:
+    		 * callback that is invoked when silence detection signaled <code>clear data</code>,
+    		 * i.e. that the audio was silent since the last message, thus the audio data
+    		 * can be dropped (i.e. not sent to the recognition service).
+    		 * 
+    		 * @param {PlainObject} message
+    		 * 			the message from the silence detection
+    		 * @param {Function} successCallback
+    		 * 			the success callback for the recognition
+    		 * 			(<code>recognize()</code> or <code>startRecord()</code>)
+    		 * @param {Function} failureCallback
+    		 * 			the error callback for the recognition
+    		 * 			(<code>recognize()</code> or <code>startRecord()</code>)
+    		 * 
+    		 * @returns {any} if the returned values is not <code>undefined</code>
+    		 * 					and FALSY, the message from the silence detection
+    		 * 					will NOT be propagated to the encoder/recognizer.
+    		 */
 			onclear: function(){}
 		};
 
@@ -584,14 +777,86 @@ newMediaPlugin = {
     		//invoke the passed-in initializer-callback and export the public functions:
     		return {
     			/**
+				 * Start speech recognition (without <em>end-of-speech</em> detection):
+				 * after starting, the recognition continues until {@link #stopRecord} is called.
+				 * 
+				 * @async
+				 * 
+				 * @param {PlainObject} [options] OPTIONAL
+				 * 		options for Automatic Speech Recognition:
+				 * 		<pre>{
+				 * 			  success: OPTIONAL Function, the status-callback (see arg statusCallback)
+				 * 			, error: OPTIONAL Function, the error callback (see arg failureCallback)
+				 * 			, language: OPTIONAL String, the language for recognition (if omitted, the current language setting is used)
+				 * 			, intermediate: OTPIONAL Boolean, set true for receiving intermediate results (NOTE not all ASR engines may support intermediate results)
+				 * 			, results: OTPIONAL Number, set how many recognition alternatives should be returned at most (NOTE not all ASR engines may support this option)
+				 * 			, mode: OTPIONAL "search" | "dictation", set how many recognition alternatives should be returned at most (NOTE not all ASR engines may support this option)
+				 * 			, eosPause: OTPIONAL "short" | "long", length of pause after speech for end-of-speech detection (NOTE not all ASR engines may support this option)
+				 * 			, disableImprovedFeedback: OTPIONAL Boolean, disable improved feedback when using intermediate results (NOTE not all ASR engines may support this option)
+				 * 		}</pre>
+				 * 
+				 * @param {Function} [statusCallback] OPTIONAL
+				 * 			callback function that is triggered when, recognition starts, text results become available, and recognition ends.
+				 * 			The callback signature is:
+				 * 				<pre>
+				 * 				callback(
+				 * 					text: String | "",
+				 * 					confidence: Number | Void,
+				 * 					status: "FINAL"|"INTERIM"|"INTERMEDIATE"|"RECORDING_BEGIN"|"RECORDING_DONE",
+				 * 					alternatives: Array<{result: String, score: Number}> | Void,
+				 * 					unstable: String | Void
+				 * 				)
+				 * 				</pre>
+				 * 			
+				 * 			Usually, for status <code>"FINAL" | "INTERIM" | "INTERMEDIATE"</code> text results are returned, where
+				 * 			<pre>
+				 * 			  "INTERIM": an interim result, that might still change
+				 * 			  "INTERMEDIATE": a stable, intermediate result
+				 * 			  "FINAL": a (stable) final result, before the recognition stops
+				 * 			</pre>
+				 * 			If present, the <code>unstable</code> argument provides a preview for the currently processed / recognized text.
+				 * 
+				 * 			<br>NOTE that when using <code>intermediate</code> mode, status-calls with <code>"INTERMEDIATE"</code> may
+				 * 			     contain "final intermediate" results, too.
+				 * 
+				 * 			<br>NOTE: if used in combination with <code>options.success</code>, this argument will supersede the options
+				 * 
+				 * @param {Function} [failureCallback] OPTIONAL
+				 * 			callback function that is triggered when an error occurred.
+				 * 			The callback signature is:
+				 * 				<code>callback(error)</code>
+				 * 
+				 * 			<br>NOTE: if used in combination with <code>options.error</code>, this argument will supersede the options
+				 * 
 				 * @public
 				 * @memberOf Html5AudioInput.prototype
 				 * @see mmir.MediaManager#startRecord
 				 */
-    			startRecord: function(successCallback, failureCallback, intermediateResults){
+    			startRecord: function(options, statusCallback, failureCallback, intermediateResults){//argument intermediateResults is deprecated (use options.intermediate instead)
+    				
+    				if(typeof options === 'function'){
+						intermediateResults = failureCallback;
+						failureCallback = statusCallback;
+						statusCallback = options;
+						options = void(0);
+					}
 
-    				if(intermediateResults){
-        				textProcessor = successCallback;
+					if(!options){
+						options = {};
+					}
+					options.success = statusCallback? statusCallback : options.success;
+					options.error = failureCallback? failureCallback : options.error;
+					options.intermediate = typeof intermediateResults === 'boolean'? intermediateResults : !!options.intermediate;
+					//TODO
+//					options.language = options.language? options.language : languageManager.getLanguageConfig(_pluginName) || DEFAULT_LANGUAGE;
+//					options.results = options.results? options.results : DEFAULT_ALTERNATIVE_RESULTS;
+//					options.disableImprovedFeedback =
+//					options.mode =
+//					options.eosPause = 
+
+
+    				if(options.intermediate){
+        				textProcessor = statusCallback;
     				} else {
     					/** 
     					 * @param text
@@ -615,14 +880,13 @@ newMediaPlugin = {
     						}
     					};
     				}
-    				if (failureCallback){
-    					currentFailureCallback = failureCallback;
-    				}
+    				
+    				currentFailureCallback = options.error;
 
-					isUseIntermediateResults = intermediateResults? true : false;
+					isUseIntermediateResults = options.intermediate;
     				endOfSpeechDetection = false;
 					
-    				audioProcessor.setCallbacks(textProcessor, currentFailureCallback, stopUserMedia, isUseIntermediateResults);
+    				audioProcessor.setCallbacks(textProcessor, currentFailureCallback, stopUserMedia, options);
     				
     				startUserMedia(function onRecStart(){
     					audioProcessor.initRec && audioProcessor.initRec();
@@ -634,20 +898,20 @@ newMediaPlugin = {
 					totalText = '';
     				audioProcessor.resetLastResult && audioProcessor.resetLastResult();
     				
-    				recording=mediaManager.micLevelsAnalysis.active(true);
+    				recording = mediaManager.micLevelsAnalysis.active(true);
     			},
     			/**
 				 * @public
 				 * @memberOf Html5AudioInput.prototype
 				 * @see mmir.MediaManager#stopRecord
 				 */
-    			stopRecord: function(successCallback,failureCallback){//blobHandler){
+    			stopRecord: function(statusCallback,failureCallback){
     				if (failureCallback){
     					currentFailureCallback = failureCallback;
     				}
     				setTimeout(function(){
     					stopUserMedia(false);
-        				if (successCallback){
+        				if (statusCallback){
         					/** 
         					 * @param text
         					 * @param confidence
@@ -672,12 +936,12 @@ newMediaPlugin = {
             						}
         							//NOTE: omit alternatives, since this is the cumulative result, and the alternatives
         							//      are only for the last part
-        							successCallback(totalText, confidence, RESULT_TYPES.FINAL);
+        							statusCallback(totalText, confidence, RESULT_TYPES.FINAL);
         						}
         						audioProcessor.resetLastResult && audioProcessor.resetLastResult();
         					};
         				}
-        				audioProcessor.setCallbacks(textProcessor, currentFailureCallback, stopUserMedia);
+        				audioProcessor.setCallbacks(textProcessor, currentFailureCallback, stopUserMedia, {});
         				
         				audioProcessor.setLastResult && audioProcessor.setLastResult();
         				
@@ -687,22 +951,44 @@ newMediaPlugin = {
     				
     			},
     			/**
+    			 * Start speech recognition with <em>end-of-speech</em> detection:
+				 * 
+				 * the recognizer automatically tries to detect when speech has finished and
+				 * triggers the status-callback accordingly with results.
+				 * 
 				 * @public
 				 * @memberOf Html5AudioInput.prototype
 				 * @see mmir.MediaManager#recognize
+				 * @see #startRecord
 				 */
-    			recognize: function(successCallback,failureCallback){
+    			recognize: function(options, statusCallback, failureCallback){
 
-    				if (successCallback){
-    					textProcessor = successCallback;
-    				}
-    				if (failureCallback){
-    					currentFailureCallback = failureCallback;
-    				}
+    				if(typeof options === 'function'){
+						intermediateResults = failureCallback;
+						failureCallback = statusCallback;
+						statusCallback = options;
+						options = void(0);
+					}
+
+					if(!options){
+						options = {};
+					}
+					options.success = statusCallback? statusCallback : options.success;
+					options.error = failureCallback? failureCallback : options.error;
+					options.intermediate = typeof intermediateResults === 'boolean'? intermediateResults : !!options.intermediate;
+					//TODO
+//					options.language = options.language? options.language : languageManager.getLanguageConfig(_pluginName) || DEFAULT_LANGUAGE;
+//					options.results = options.results? options.results : DEFAULT_ALTERNATIVE_RESULTS;
+//					options.disableImprovedFeedback =
+//					options.mode =
+//					options.eosPause = 
+
+    				textProcessor = options.success
+    				currentFailureCallback = options.error;
 
     				endOfSpeechDetection = true;
     				
-    				audioProcessor.setCallbacks(textProcessor, currentFailureCallback, stopUserMedia);
+    				audioProcessor.setCallbacks(textProcessor, currentFailureCallback, stopUserMedia, options);
     				
     				startUserMedia(function(){
     					audioProcessor.initRec && audioProcessor.initRec();
@@ -728,9 +1014,7 @@ newMediaPlugin = {
 				 */
     			cancelRecognition: function(successCallback, failureCallback){
     				
-    				if (failureCallback){
-    					currentFailureCallback = failureCallback;
-    				}
+    				currentFailureCallback = failureCallback;
     				
     				stopUserMedia(false);
     				
