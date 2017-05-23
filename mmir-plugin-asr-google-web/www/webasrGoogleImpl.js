@@ -116,8 +116,14 @@ newWebAudioAsrImpl = (function GoogleWebAudioInputImpl(){
 
 		return languageManager.fixLang('google', lang);
 	};
-	
-//	var textProcessor, currentFailureCallback;
+
+	/**
+	 * Recognition options for current recognition process.
+	 * 
+	 * @memberOf GoogleWebAudioInputImpl#
+	 * @see mmir.MediaManager#recognize
+	 */
+	var currentOptions;
 	
 	/** 
 	 * @returns {Error} an error description, that is a PlainObject with properties
@@ -152,14 +158,10 @@ newWebAudioAsrImpl = (function GoogleWebAudioInputImpl(){
 	/** @memberOf GoogleWebAudioInputImpl# */
 	var doSend = function(msg, successCallback, errorCallback){
 
-//		successCallback = successCallback || textProcessor;
-//		errorCallback = errorCallback || currentFailureCallback;
 
 		function ajaxSuccess () {
 
 			if (oAjaxReq.status == 200) {
-//				console.log("AJAXSubmit - Success!");
-//				console.log("ResonseText in input");
 
 				//result format example for JSON:
 				//
@@ -239,12 +241,6 @@ newWebAudioAsrImpl = (function GoogleWebAudioInputImpl(){
 					}
 				}
 
-//				console.log("ResonseText:"+this.responseText);
-//				console.log("ResonseArray:"+respText);
-
-				//jsonResp = JSON.parse(this.responseText);
-
-
 				//[asr_result, asr_score, asr_type, asr_alternatives, asr_unstable]
 				//[ text, number, STRING (enum/CONST), Array<(text, number)>, text ]
 				//                ["FINAL" | "INTERIM"...]
@@ -259,27 +255,22 @@ newWebAudioAsrImpl = (function GoogleWebAudioInputImpl(){
 			}
 		}
 
-//		var data = blob;
-//		var sample_rate = 	$scope.samplerate;
-//		var key = 			$scope._google_api_key;
-//		var alternatives = 	$scope._asr_alternatives;
-
-		var data = msg.buf; //is a blob
+		var data = msg.buf;//is a Blob
 		var dataSize = data.size;
-		var sample_rate = 44100; //PB TODO do not "hard-code" this!
-//		console.log("Ajax-Data: ");
-//		console.log(data);
+		var sample_rate = currentOptions.sampleRate? currentOptions.sampleRate : 44100;
+		
+//		console.log("Ajax-Data: ", data);
 
 		var oAjaxReq = new XMLHttpRequest();
 
-		var apiLang = getFixedLang();//TODO use options parameter from startRecord-/recognize-invocation
+		var apiLang = getFixedLang(currentOptions);
 
-		var key = configurationManager.getString( [_pluginName, "appKey"] );
+		var key = currentOptions.appKey? currentOptions.appKey : configurationManager.getString( [_pluginName, "appKey"] );
 		var baseUrl = "https://www.google.com/speech-api/v2/recognize?client=chromium&output=json";
 		
 		var url = baseUrl + '&key=' + key + '&lang=' + apiLang;
 		
-		var alternatives;// = 1;//TODO use options parameter from startRecord-/recognize-invocation and/or config: configurationManager.getString( [_pluginName, "alternatives"] );
+		var alternatives = typeof currentOptions.results === 'number'? currentOptions.results : 1;
 		if(typeof alternatives !== 'undefined'){
 			url += '&maxAlternatives='+alternatives;
 		}
@@ -292,7 +283,6 @@ newWebAudioAsrImpl = (function GoogleWebAudioInputImpl(){
 //		oAjaxReq.setRequestHeader("User-Agent", "Mozilla/5.0 (Windows NT 6.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.63 Safari/537.36;");
 		oAjaxReq.withCredentials = true;
 		oAjaxReq.send(data);
-
 
 
 //		//FIXM russa DEBUG:
@@ -369,11 +359,15 @@ newWebAudioAsrImpl = (function GoogleWebAudioInputImpl(){
 		getPluginName: function(){
 			return _pluginName;
 		},
-		setCallbacks: function(successCallback, failureCallback){},//NOOP these need to be set in doSend() only
-//
-//			textProcessor = successCallback;
-//			currentFailureCallback = failureCallback;
-//		},
+		setCallbacks: function(successCallbackFunc, failureCallbackFunc, stopUserMediaFunc, options){
+			
+			//callbacks need to be set in doSend() only
+//			successCallback = successCallbackFunc;
+//			errorCallback = failureCallbackFunc;
+//			var func = stopUserMediaFunc;
+			
+			currentOptions = options;
+		},
 		setLastResult: function(){
 			lastBlob = true;
 		},
