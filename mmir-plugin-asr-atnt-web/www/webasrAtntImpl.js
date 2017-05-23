@@ -129,6 +129,15 @@ newWebAudioAsrImpl = (function ATnTWebAudioInputImpl(){
 	 */
 	var defaultLang = supportedLang.en;
 	
+
+	/**
+	 * Recognition options for current recognition process.
+	 * 
+	 * @memberOf ATnTWebAudioInputImpl#
+	 * @see mmir.MediaManager#recognize
+	 */
+	var currentOptions;
+	
 	/**
 	 * HELPER retrieve language setting and apply impl. specific corrections/adjustments
 	 * (i.e. deal with AT&T specific quirks for language/country codes)
@@ -304,7 +313,7 @@ newWebAudioAsrImpl = (function ATnTWebAudioInputImpl(){
 
 		var oAjaxReq = new XMLHttpRequest();
 
-		var apiLang = getFixedLang();//TODO use options parameter from startRecord-/recognize-invocation
+		var apiLang = getFixedLang(currentOptions);
 
 		//oAjaxReq.submittedData = oData;
 //		oAuthToken =  "BF-ACSI~4~20150218153931~c9fdO6D2sLzftjyleO1KeWdE4aDf1kgu";
@@ -347,8 +356,8 @@ newWebAudioAsrImpl = (function ATnTWebAudioInputImpl(){
 	var doInitSend = function _initSendAtnt(oninit){
 
 		//Get from <https://matrix.bf.sl.attcompute.com/>
-		var appKey = configurationManager.get([_pluginName, 'appKey']);
-		var appSecret = configurationManager.get([_pluginName, 'appSecret']);
+		var appKey = currentOptions.appKey? currentOptions.appKey : configurationManager.get([_pluginName, 'appKey']);
+		var appSecret = currentOptions.appSecret? currentOptions.appSecret : configurationManager.get([_pluginName, 'appSecret']);
 
 		var oReq = new XMLHttpRequest();
 		var url = "https://api.att.com/oauth/v4/token";
@@ -431,11 +440,15 @@ newWebAudioAsrImpl = (function ATnTWebAudioInputImpl(){
 		getPluginName: function(){
 			return _pluginName;
 		},
-		setCallbacks: function(successCallback, failureCallback){},//NOOP these need to be set in doSend() only
-//
-//			textProcessor = successCallback;
-//			currentFailureCallback = failureCallback;
-//		},
+		setCallbacks: function(successCallbackFunc, failureCallbackFunc, stopUserMediaFunc, options){
+			
+			//callbacks need to be set in doSend() only
+//			successCallback = successCallbackFunc;
+//			errorCallback = failureCallbackFunc;
+//			var func = stopUserMediaFunc;
+			
+			currentOptions = options;
+		},
 		setLastResult: function(){
 			lastBlob = true;
 		},
