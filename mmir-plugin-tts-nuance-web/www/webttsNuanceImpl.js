@@ -1,5 +1,5 @@
 /*
- * 	Copyright (C) 2012-2016 DFKI GmbH
+ * 	Copyright (C) 2012-2017 DFKI GmbH
  * 	Deutsches Forschungszentrum fuer Kuenstliche Intelligenz
  * 	German Research Center for Artificial Intelligence
  * 	http://www.dfki.de
@@ -27,7 +27,7 @@
 /**
  * Media Module: Implementation for Text-To-Speech via Nuance TTS over HTTPS/POST
  * 
- * @requries jQuery.ajax >= 2.2.3
+ * @requries util/ajax (jQuery.ajax like API)
  * @requires Cross-Domain access
  * @requires CSP for accessing the Nuance TTS server, e.g. "connect-src https://tts.nuancemobility.net" or "default-src https://tts.nuancemobility.net"
  * @requires CSP allowing blob: protocal as media-source, e.g. "media-src blob:" or "default-src blob:"
@@ -144,8 +144,8 @@ newWebAudioTtsImpl = (function NuanceWebAudioTTSImpl(){
 			//get authentification info from configuration.json:
 			// "<plugin name>": { "appId": ..., "appKey": ... }
 			// -> see Nuance developer account for your app-ID and app-key
-			var appId= _conf([_pluginName, 'appId'], null);
-			var appKey= _conf([_pluginName, 'appKey'], null);
+			var appId= options.appId? options.appId : _conf([_pluginName, 'appId'], null);
+			var appKey= options.appKey? options.appKey : _conf([_pluginName, 'appKey'], null);
 			
 			if(!appKey || !appId){
 				var msg = 'Invalid or missing authentification information for appId "'+appId+'" and appKey "'+appKey+'"';
@@ -156,10 +156,15 @@ newWebAudioTtsImpl = (function NuanceWebAudioTTSImpl(){
 				return;////////////////////////////// EARLY EXIT ////////////////////
 			}
 			
-			var baseUrl = _conf(
-					[_pluginName, 'serverBasePath'], 
-					'https://tts.nuancemobility.net:443/NMDPTTSCmdServlet/tts'	//<- default value
-			);
+			var baseUrl = options.baseUrl? options.baseUrl : _conf([_pluginName, 'baseUrl']);
+			
+			//backwards-compatiblity: lookup config-value for serverBasePath, in addition to baseUrl
+			if(!baseUrl){
+				baseUrl = _conf(
+						[_pluginName, 'serverBasePath'], 
+						'https://tts.nuancemobility.net:443/NMDPTTSCmdServlet/tts'	//<- default value
+				);
+			}
 			
 			var langParam;
 			var voice = _getVoiceParam(options);
