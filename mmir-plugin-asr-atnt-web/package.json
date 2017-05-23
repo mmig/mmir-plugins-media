@@ -1,6 +1,6 @@
 {
   "name": "mmir-plugin-asr-atnt-web",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "\r\n      Cordova plugin for the MMIR framework that allows Automatic Speech Recognition (ASR) via AT&T web services\r\n    ",
   "cordova": {
     "id": "mmir-plugin-asr-atnt-web",
