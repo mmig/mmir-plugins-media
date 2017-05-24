@@ -905,10 +905,22 @@ newMediaPlugin = {
 				 * @memberOf Html5AudioInput.prototype
 				 * @see mmir.MediaManager#stopRecord
 				 */
-    			stopRecord: function(statusCallback,failureCallback){
-    				if (failureCallback){
-    					currentFailureCallback = failureCallback;
-    				}
+    			stopRecord: function(options, statusCallback, failureCallback){
+    				
+    				if(typeof options === 'function'){
+						failureCallback = statusCallback;
+						statusCallback = options;
+						options = void(0);
+					}
+					
+					if(options){
+						statusCallback = statusCallback? statusCallback : options.success;
+						failureCallback = failureCallback? failureCallback : options.error;
+					}
+					
+    				currentFailureCallback = failureCallback;
+    				textProcessor = void(0);//will be set within setTimeout() below
+    				
     				setTimeout(function(){
     					stopUserMedia(false);
         				if (statusCallback){
