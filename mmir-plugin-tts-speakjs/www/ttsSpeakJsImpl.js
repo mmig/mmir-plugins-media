@@ -129,7 +129,7 @@ newWebAudioTtsImpl = (function SpeakJsWebAudioTTSImpl(){
 		var getTTSOptions = function(options){
 			
 //			args['amplitude'] ? String(args['amplitude']) : '100',
-//		    args['wordgap'] ? String(args['wordgap']) : '0', // XXX
+//		    args['wordgap'] ? String(args['wordgap']) : '0', // wordgap: Additional gap between words in 10 ms units (default: 0)
 //		    args['pitch'] ? String(args['pitch']) : '50',
 //		    args['speed'] ? String(args['speed']) : '175',
 //		    args['voice'] ? String(args['voice']) : 'en-us',
