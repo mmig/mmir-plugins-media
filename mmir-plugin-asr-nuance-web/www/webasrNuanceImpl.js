@@ -27,7 +27,7 @@
 /**
  * Media Module: Implementation for Speech Recognition via Nuance ASR over HTTPS/POST
  * 
- * @requries jQuery.ajax
+ * @requries util/ajax (jQuery.ajax like API)
  * @requires AMR encoder (workers/amrEncoder.js)
  * @requires Cross-Domain access
  * @requires CSP for accessing the Nuance ASR server, e.g. "connect-src https://dictation.nuancemobility.net" or "default-src https://dictation.nuancemobility.net"
@@ -108,6 +108,14 @@ newWebAudioAsrImpl = (function NuanceWebAudioInputImpl(){
 			"RECORDING_BEGIN": 		"RECORDING_BEGIN",
 			"RECORDING_DONE": 		"RECORDING_DONE"
 	};
+
+	/**
+	 * Recognition options for current recognition process.
+	 * 
+	 * @memberOf NuanceWebAudioInputImpl#
+	 * @see mmir.MediaManager#recognize
+	 */
+	var currentOptions;
 
 	/** @memberOf NuanceWebAudioInputImpl# */
 	var lastBlob = false;
@@ -231,19 +239,10 @@ newWebAudioAsrImpl = (function NuanceWebAudioInputImpl(){
 		
 		var ajaxSuccess = function(data, textStatus, jqXHR) {
 
-//			console.log("AJAXSubmit - Success!");
-//			console.log("ResonseText in input");
-
 			var respText = (jqXHR.responseText).split("\n");
 			if(!respText){
 				respText = '';
 			}
-
-//			console.log("ResonseText:"+this.responseText);
-//			console.log("ResonseArray:"+respText);
-
-			//jsonResp = JSON.parse(this.responseText);
-
 
 			//[asr_result, asr_score, asr_type, asr_alternatives, asr_unstable]
 			//[ text, number, STRING (enum/CONST), Array<(text, number)>, text ]
@@ -272,29 +271,29 @@ newWebAudioAsrImpl = (function NuanceWebAudioInputImpl(){
 			
 			var err = asrErrorWrapper(jqXHR, dataSize);
 			
-			//FIXME find solution for case that there was an error/problem, but ASR was not stopped
 			var asrStopped = false;
 			if(!isUseIntermediateResults || err.isFatal){
 				asrStopped = true;
 				closeMicFunc();
 			}
 			
-			if(errorCallback && asrStopped){//FIXME find solution for case that there was an error/problem, but ASR was not stopped
+			if(errorCallback && asrStopped){
 				errorCallback(err.message, err.status, asrStopped);
 			} else {
 				console.error('Error response from server (status '+err.status+'): '+err.message);
 			}
 		};
 
-		var data = msg.buf; //is a blob
+		var data = msg.buf;//is a blob
 		var dataSize = data.size;
 
-		var apiLang = getFixedLang();//TODO use options parameter from startRecord-/recognize-invocation
+		var apiLang = getFixedLang(currentOptions);
 
-		var appKey = configurationManager.getString( [_pluginName, "appKey"] );
-		var appId = configurationManager.getString( [_pluginName, "appId"] ); 
+		var appKey = currentOptions.appKey? currentOptions.appKey : configurationManager.getString( [_pluginName, "appKey"] );
+		var appId = currentOptions.appId? currentOptions.appId : configurationManager.getString( [_pluginName, "appId"] ); 
 		var baseUrl = "https://dictation.nuancemobility.net/NMDPAsrCmdServlet/dictation";
 
+		//TODO support more options / custom options
 		var options = {
 			url: baseUrl+"?appId="+appId+"&appKey="+appKey,
 			type: 'POST',
@@ -388,19 +387,15 @@ newWebAudioAsrImpl = (function NuanceWebAudioInputImpl(){
 		getPluginName: function(){
 			return _pluginName;
 		},
-		setCallbacks: function(successCallback, failureCallback, stopUserMedia, isIntermediateResults){
+		setCallbacks: function(successCallback, failureCallback, stopUserMedia, options){
 
 //			currentSuccessCallback = successCallback;//needs to be set in doSend() only
 //			currentFailureCallback = failureCallback;//needs to be set in doSend() only
 			closeMicFunc = stopUserMedia;
-			isUseIntermediateResults = isIntermediateResults;
-		},
 			
-			function(successCallback, failureCallback){},//NOOP these need to be set in doSend() only
-//
-//			textProcessor = successCallback;
-//			currentFailureCallback = failureCallback;
-//		},
+			currentOptions = options;
+			isUseIntermediateResults = options.intermediate;
+		},
 		setLastResult: function(){
 			lastBlob = true;
 		},
