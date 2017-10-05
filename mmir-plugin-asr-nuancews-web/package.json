@@ -1,14 +1,14 @@
 {
-  "name": "mmir-plugin-asr-nuanceWS-web",
+  "name": "mmir-plugin-asr-nuancews-web",
   "version": "0.4.0",
   "description": "\r\n      Cordova plugin for the MMIR framework that allows Automatic Speech Recognition (ASR) via Nuance web services\r\n    ",
   "cordova": {
-    "id": "mmir-plugin-asr-nuanceWS-web",
+    "id": "mmir-plugin-asr-nuancews-web",
     "platforms": []
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mmig/mmir-plugins-media.git#master:mmir-plugin-asr-nuanceWS-web"
+    "url": "git+https://github.com/mmig/mmir-plugins-media.git#master:mmir-plugin-asr-nuancews-web"
   },
   "keywords": [
     "cordova",
@@ -36,5 +36,5 @@
   "bugs": {
     "url": "https://github.com/mmig/mmir-plugins-media/issues"
   },
-  "homepage": "https://github.com/mmig/mmir-plugins-media/tree/master%3Ammir-plugin-asr-nuanceWS-web#readme"
+  "homepage": "https://github.com/mmig/mmir-plugins-media/tree/master%3Ammir-plugin-asr-nuancews-web#readme"
 }
